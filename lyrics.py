@@ -18,7 +18,10 @@
 # musica.com          X
 
 import sys
+import os
+import time
 import re
+import argparse
 import glob
 import eyed3
 import logging
@@ -286,45 +289,165 @@ def musica(mp3file):
     return text.strip()
 
 
-songs = glob.iglob("**.mp3", recursive=True)
-for filename in songs:
-    try:
-        audiofile = eyed3.load(filename)
-        lyrics=""
 
-        sources = [
-            azlyrics,
-            metrolyrics,
-            lyricswikia,
-            darklyrics,
-            metalarchives,
-            genius,
-            musixmatch,
-            vagalume,
-            letrasmus,
-            lyricsmode,
-            musica,
-            lyricscom
-        ]
-        for source in sources:
-            try:
-                lyrics = source(audiofile)
-                if lyrics != '':
-                    break
-            except HTTPError as e:
-                pass
-            except Exception as e:
-                pass
+sources = [
+    azlyrics,
+    metrolyrics,
+    lyricswikia,
+    darklyrics,
+    metalarchives,
+    genius,
+    musixmatch,
+    vagalume,
+    letrasmus,
+    lyricsmode,
+    musica,
+    lyricscom
+]
+
+class Stats:
+    def __init__(self):
+        # Stores how many songs have been found on every source
+        self.source_count = {}
+        # Stores a list of the time in seconds that took to scrape 
+        # lyrics from every site in every successful attempt
+        self.source_times = {}
+
+        for name in sources:
+            self.source_count[name.__name__] = 0
+            self.source_times[name.__name__] = []
+
+    def add_result(self, source, runtime):
+        """Adds a new record to the statistics 'database'"""
+        self.source_count[source.__name__]+=1
+        self.source_times[source.__name__].append(runtime)
+
+    def avg(self, values):
+        """Returns the average of a list of numbers"""
+        return sum(values)/len(values)
+
+    def avg_time(self, source=None):
+        """Returns the average time taken to scrape lyrics. If a string or a
+        function is passed as source, return the average time taken to scrape
+        lyrics from this source"""
+        total=0
+        count=0
+        if source is None:
+            for runtime in self.source_times.values():
+                total+=sum(runtime)
+                count+=len(runtime)
+            return total/count
         else:
-            sys.stderr.write('Could not find lyrics for ' + filename + '\n')
+            if callable(source):
+                return self.avg(self.source_times[source.__name___])
+            else:
+                return self.avg(self.source_times[source])
+
+    def fastest_source(self):
+        """Returns the name of the source with the lowest average scrape time"""
+        min([self.avg_time(source) for source in sources])
+
+    def best_source(self):
+        """Returns the name of the source with the most lyrics found"""
+        max(self.source_count.values())
+
+def run(songs):
+    for filename in songs:
+        if not os.path.exists(filename):
+            sys.stderr.write(filename + " not found\n")
             continue
+        if os.path.isdir(filename):
+            sys.stderr.write(filename + " is a directory\n")
+            continue
+        try:
+            audiofile = eyed3.load(filename)
+            lyrics=""
 
-        # audiofile.tag.lyrics.set(u''+lyrics)
-        print("=== {} - {}".format(audiofile.tag.artist, audiofile.tag.title))
-        # audiofile.tag.save()
-        print(lyrics)
-        # print("Lyrics added")
+            for source in sources:
+                try:
+                    lyrics = source(audiofile)
+                    if lyrics != '':
+                        break
+                except HTTPError as e:
+                    # do something with e.code
+                    pass
+                except Exception as e:
+                    pass
+            else:
+                sys.stderr.write('Could not find lyrics for ' + filename + '\n')
+                continue
 
-    except Exception as e:
-        print (e)
-        sys.stderr.write('Err: Could not add lyrics for '+filename + '\n')
+            # audiofile.tag.lyrics.set(u''+lyrics)
+            print("=== {} - {}".format(audiofile.tag.artist, audiofile.tag.title))
+            # audiofile.tag.save()
+            print(lyrics)
+            # print("Lyrics added for "+filename)
+        except IOError:
+            sys.stderr.write(f'Err: Could not operate with file: {filename}\n')
+        except Exception as e:
+            print (e)
+            sys.stderr.write('Err: Could not add lyrics for '+filename + '\n')
+
+
+jobcount=0
+stats=False
+mp3files=[]
+
+def parseargv():
+    '''Parse command line arguments. Settings will be stored in the global
+    variables declared above'''
+    parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
+            " files and embed them as metadata")
+    parser.add_argument("-j", "--jobs", help="Number of parallel processes", type=int,
+            default=0)
+    parser.add_argument("-f", "--force", help="Confirm the use of too many processes",
+            action="store_true")
+    parser.add_argument("-s", "--stats", help="Output some stats about the"
+            " execution at the end", action="store_true")
+    parser.add_argument("-r", "--recursive", help="Recursively search for all"
+            " the mp3 files in the current directory", action="store_true")
+    parser.add_argument("files", help="The mp3 files to search lyrics for",
+            nargs="*")
+    args = parser.parse_args()
+
+    if args.jobs:
+        if args.jobs > os.cpu_count() and not args.force:
+            sys.stderr.write("You specified a number of parallel threads"
+            " greater than the number of processors in your system. To continue"
+            " at your own risk you must confirm you choice with -f\n")
+            return 1
+        jobcount = args.jobs
+
+    # Argsparse would not let me create a mutually exclusive group with
+    # positional arguments, so I made the checking myself
+    if args.files and args.recursive:
+        parser.print_usage(sys.stderr)
+        sys.stderr.write(f"{sys.argv[0]}: error: argument -r/--recursive: not"
+                " allowed with positional arguments")
+        return 2
+
+    if args.files:
+        mp3files = args.files
+    elif args.recursive:
+        mp3files = glob.glob("**/*.mp3", recursive=True)
+
+    return 0
+
+# Yes I know this is not the most pythonic way to do things, but it helps me
+# organize my code.
+def main():
+    ret = parseargv()
+    if ret != 0:
+        return ret
+
+    start = time.time()
+    run(mp3files)
+    elapsed = time.time() - start
+    output = "%d:%02d:%02d" % (elapsed/3600,(elapsed/3600)/60,(elapsed%3600)%60)
+    print (output)
+    sys.stderr.write(output+'\n')
+
+    return 0
+
+if __name__=='__main__':
+    exit(main())
