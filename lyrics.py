@@ -15,7 +15,7 @@
 # lyricsmode.com      X
 # metal-archives.com  X
 # letras.mus.br       X
-# musica.com
+# musica.com          X
 
 import sys
 import re
@@ -262,16 +262,28 @@ def musica(mp3file):
     url=first_res['href']
     print(url)
     soup = bs(url)
-    first_res = soup.find(string=re.compile(title+"$", re.IGNORECASE))
+    for a in soup.find_all('a'):
+        if re.search(title+"$", a.text, re.IGNORECASE):
+            first_res = a
+            break
+    else:
+        print('Not found')
+        return ""
 
-    url = "https://www.musica.com/"+first_res
+    url = "https://www.musica.com/"+first_res['href']
     print(url)
     soup = bs(url)
     content = soup.p
+    for rem in content.find_all('font'):
+        rem.unwrap()
     for googlead in content.find_all(['script', 'ins']):
         googlead.decompose()
 
-    return content.get_text().replace('\r','\n').strip()
+    text = str(content)
+    text = re.sub('<.?p>','',text)
+    text = re.sub('<.?br.?>','\n', text)
+
+    return text.strip()
 
 
 songs = glob.iglob("**.mp3", recursive=True)
@@ -280,21 +292,20 @@ for filename in songs:
         audiofile = eyed3.load(filename)
         lyrics=""
 
-        # sources = [
-        #     azlyrics,
-        #     metrolyrics,
-        #     lyricswikia,
-        #     darklyrics,
-        #     genius,
-        #     musixmatch,
-        #     vagalume,
-        #     letrasmus,
-        #     musica,
-        #     lyricsmode,
-        #     metalarchives,
-        #     lyricscom 
-        # ]
-        sources = [ musica ]
+        sources = [
+            azlyrics,
+            metrolyrics,
+            lyricswikia,
+            darklyrics,
+            metalarchives,
+            genius,
+            musixmatch,
+            vagalume,
+            letrasmus,
+            lyricsmode,
+            musica,
+            lyricscom
+        ]
         for source in sources:
             try:
                 lyrics = source(audiofile)
