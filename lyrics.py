@@ -402,72 +402,141 @@ sources = [
     musica
 ]
 
+def avg(values):
+    """Returns the average of a list of numbers"""
+    if values == []:
+        return 0
+    else:
+        return sum(values)/len(values)
+
+class Record:
+    """Defines an entry in the stats 'database'. Packs a set of information
+    about an execution of the scrapping functions. This class is auxiliary to
+    Stats"""
+    def __init__(self):
+        self.successes = 0
+        self.fails     = 0
+        self.avg_time  = 0
+        self.runtimes  = []
+
+    def add_runtime(self, runtime):
+        self.avg_time *= len(self.runtimes)
+        self.avg_time += runtime
+        self.runtimes.append(runtime)
+        self.avg_time /= len(self.runtimes)
+
+    def __str__(self):
+        if self.successes + self.fails == 0:
+            success_rate = 0
+        else:
+            success_rate = (self.successes*100/(self.successes + self.fails))
+
+        return f'''Successes: %d
+Fails: %d
+Success rate: %.2f%%
+Average runtime: %.2f s''' % (self.successes, self.fails, success_rate, avg(self.runtimes))
+
+    def __repr__(self):
+        return self.__str__()
+
 class Stats:
     """Stores a series of statistics about the execution of the program"""
     def __init__(self):
-        # Stores how many songs have been found on every source
-        self.source_count = {}
-        # Stores a list of the time in seconds that took to scrape
-        # lyrics from every site in every successful attempt
-        self.source_times = {}
+        # Maps every lyrics scraping function to a Record object
+        self.source_stats = {}
 
         for name in sources:
-            self.source_count[name.__name__] = 0
-            self.source_times[name.__name__] = []
+            self.source_stats[name.__name__] = Record()
 
-    def add_result(self, source, runtime):
-        """Adds a new record to the statistics 'database'"""
-        self.source_count[source.__name__]+=1
-        self.source_times[source.__name__].append(runtime)
-
-    def avg(self, values):
-        """Returns the average of a list of numbers"""
-        return sum(values)/len(values)
+    def add_result(self, source, runtime, found):
+        """Adds a new record to the statistics 'database'. This function is
+        intended to be called after a website has been scraped. The arguments
+        indicate the function that was called, the time taken to scrap the
+        website and a boolean indicating if the lyrics were found or not
+        """
+        self.source_stats[source.__name__].add_runtime(runtime)
+        if found:
+            self.source_stats[source.__name__].successes += 1
+        else:
+            self.source_stats[source.__name__].fails += 1
 
     def avg_time(self, source=None):
         """Returns the average time taken to scrape lyrics. If a string or a
         function is passed as source, return the average time taken to scrape
-        lyrics from this source"""
+        lyrics from this source, otherwise return the total average"""
         total = 0
         count = 0
         if source is None:
-            for runtime in self.source_times.values():
-                total += sum(runtime)
-                count += len(runtime)
+            for rec in self.source_stats.values():
+                total += sum(rec.runtimes)
+                count += len(rec.runtimes)
             return total/count
         else:
             if callable(source):
-                return self.avg(self.source_times[source.__name___])
+                return self.source_stats[source.__name__].avg_time
             else:
-                return self.avg(self.source_times[source])
+                return self.source_stats[source].avg_time
 
-    def fastest_source(self):
-        """Returns the name of the source with the lowest average scrape time"""
-        min([self.avg_time(source) for source in sources])
+    def print_stats(self):
+        '''Print a series of relevant stats about a full execution. This function
+        is meant to be called at the end of the program'''
+        best = None
+        fastest = None
+        found = 0
+        notfound = 0
+        total_time = 0
+        for source,rec in self.source_stats.items():
+            if best is None or rec.successes > best[1]:
+                best = (source, rec.successes)
+            if fastest is None or self.avg_time(source) > fastest[1]:
+                fastest = (source, self.avg_time(source))
+            found += rec.successes
+            total_time += sum(rec.runtimes)
 
-    def best_source(self):
-        """Returns the name of the source with the most lyrics found"""
-        max(self.source_count.values())
+        # best_source = max([rec.successes for rec in self.source_stats.values()])
+        # fastest_source = min([self.avg_time(source) for source in sources])
+        # found = sum([rec.successes for rec in self.source_stats.values()])
+        # total_time = sum([sum(rec.runtimes) for rec in self.source_stats.values()])
+        notfound = len(mp3files) - found
+        string = f"""Total runtime: {total_time}
+    Lyrics found: {found}
+    Lyrics not found:{notfound}
+    Most useful source: {best[0]} ({best[1]} lyrics found)
+    Fastest website to scrape: {fastest[0]} (Avg: {fastest[1]}s per search)
+    Average time per website: {self.avg_time()}s
+
+    PER WEBSITE STATS:
+    """
+        for source in sources:
+            s = str(self.source_stats[source.__name__])
+            string += f"\n{source.__name__.upper()}\n{s}\n"
+
+        print(string)
 
 def run(songs):
+    stats = Stats()
     good = open('found', 'w')
-    bad = open('notfound', 'w')
+    bad  = open('notfound', 'w')
+
     for filename in songs:
         logging.info(filename)
         if not os.path.exists(filename):
-            sys.stderr.write(filename + " not found\n")
+            sys.stderr.write(f"Err: File '{filename}' not found\n")
             continue
         if os.path.isdir(filename):
-            sys.stderr.write(filename + " is a directory\n")
+            sys.stderr.write(f"Err: File '{filename}' is a directory\n")
             continue
-        # try:
+
         audiofile = eyed3.load(filename)
         lyrics = ""
         found = False
 
         for source in sources:
+            found = False
             try:
+                start = time.time()
                 lyrics = source(audiofile)
+                end = time.time()
                 if lyrics != '':
                     logging.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
                     good.write(source.__name__[0:3].upper()+": " + filename+'\n')
@@ -479,9 +548,17 @@ def run(songs):
                     bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
                     bad.flush()
             except (HTTPError, URLError) as e:
-                logging.exception(f'== {source.__name__}: {e}\n')
+                if not hasattr(e, 'code') or e.code != 404:
+                    logging.exception(f'== {source.__name__}: {e}\n')
+
+                bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
+                bad.flush()
             except HTTPException as e:
                 pass
+            finally:
+                end = time.time()
+                stats.add_result(source, end-start, found)
+
             # except Exception as e:
             #     loggging.exception(f'== {source.__name__}: {e}\n')
         else:
@@ -503,7 +580,7 @@ def run(songs):
         #     logging.warning('Could not add lyrics for '+filename + '\n')
     good.close()
     bad.close()
-
+    return stats
 
 jobcount = 0
 stats = False
@@ -574,17 +651,12 @@ def main():
     if ret != 0:
         return ret
 
-    start = time.time()
     logging.debug("Running with "+str(mp3files))
     try:
-        run(mp3files)
+        stats = run(mp3files)
+        stats.print_stats()
     except KeyboardInterrupt:
         print ("Interrupted")
-
-    elapsed = time.time() - start
-    output = "%d:%02d:%02d" % (elapsed/3600,(elapsed/3600)/60,(elapsed%3600)%60)
-    print(output)
-    sys.stderr.write(output+'\n')
 
     return 0
 
