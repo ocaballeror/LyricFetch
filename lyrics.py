@@ -27,15 +27,16 @@ import eyed3
 import logging
 import urllib.request as urllib
 
-from urllib.error import HTTPError
+from urllib.error import *
+from http.client import HTTPException
 from bs4 import NavigableString, Tag, BeautifulSoup
 
 logging.getLogger("eyed3.mp3.headers").setLevel(logging.CRITICAL)
 
-def bs(url):
+def bs(url, safe=":/"):
     '''Requests the specified url and returns a BeautifulSoup object with its
     contents'''
-    url = urllib.quote(url,safe=":/")
+    url = urllib.quote(url,safe=safe)
     print('URL: '+url)
     sys.stdout.flush()
     req = urllib.Request(url, headers={"User-Agent": "foobar"})
@@ -45,7 +46,7 @@ def bs(url):
 # Contains the characters usually removed or replaced in URLS
 urlescape = ".¿?_@,;&\\/()'\"-!¡"
 urlescapeS = ' '+urlescape
-def normalize(string, charsToRemove='', replacement=''):
+def normalize(string, charsToRemove=None, replacement=''):
     """Remove accented characters and such.
     The argument charsToRemove is a dictionary that maps a string of chars
     to a single character. Every ocurrence of every character in the first
@@ -80,7 +81,7 @@ def metrolyrics(mp3file):
     title = mp3file.tag.title.lower()
     title = normalize(title, translate)
     title = re.sub(r'\-{2,}', '-', title)
-    artist = mp3file.tag.artist.lower()
+    artist = mp3file.tag.album_artist.lower()
     artist = normalize(artist, translate)
     artist = re.sub(r'\-{2,}', '-', artist)
 
@@ -102,7 +103,7 @@ def metrolyrics(mp3file):
 def darklyrics(mp3file):
     '''Returns the lyrics found in darklyrics for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist.lower()
+    artist = mp3file.tag.album_artist.lower()
     artist = normalize(artist, urlescapeS, '')
     album = mp3file.tag.album.lower()
     album = normalize(album, urlescapeS, '')
@@ -126,7 +127,7 @@ def darklyrics(mp3file):
 def azlyrics(mp3file):
     '''Returns the lyrics found in azlyrics for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist.lower()
+    artist = mp3file.tag.album_artist.lower()
     if artist[0:2] == "a ":
         artist = artist[2:]
     artist = normalize(artist, urlescapeS, "")
@@ -148,7 +149,7 @@ def genius(mp3file):
         urlescape: '',
         ' ': '-'
     }
-    artist = mp3file.tag.artist.capitalize()
+    artist = mp3file.tag.album_artist.capitalize()
     artist = normalize(artist, translate)
     title = mp3file.tag.title.capitalize()
     title = normalize(title, translate)
@@ -162,7 +163,7 @@ def genius(mp3file):
 def metalarchives(mp3file):
     '''Returns the lyrics found in MetalArchives for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist.capitalize()
+    artist = mp3file.tag.album_artist.capitalize()
     artist = normalize(artist, ' ', '_')
     album = mp3file.tag.album.capitalize()
     album = normalize(album, ' ', '_')
@@ -182,7 +183,7 @@ def metalarchives(mp3file):
 def lyricswikia(mp3file):
     '''Returns the lyrics found in lyrics.wikia.com for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist.title()
+    artist = mp3file.tag.album_artist.title()
     artist = normalize(artist, ' ', '_')
     title = mp3file.tag.title
     title = normalize(title, ' ', '_')
@@ -191,6 +192,9 @@ def lyricswikia(mp3file):
     soup = bs(url)
     text=""
     content = soup.find('div', class_='lyricbox')
+    if not content:
+        return ""
+
     for unformat in content.findChildren(['i','b']):
         unformat.unwrap()
     for remove in content.findChildren('div'):
@@ -217,7 +221,7 @@ def musixmatch(mp3file):
         escape: "",
         " ": "-"
     }
-    artist = mp3file.tag.artist.title()
+    artist = mp3file.tag.album_artist.title()
     artist = re.sub(r"( '|' )", "", artist)
     artist = re.sub(r"'", "-", artist)
     title = mp3file.tag.title
@@ -240,10 +244,9 @@ def musixmatch(mp3file):
 def lyricscom(mp3file):
     '''Returns the lyrics found in lyrics.com for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist.lower()
+    artist = mp3file.tag.album_artist.lower()
     artist = normalize(artist, " ", "+")
-    title = mp3file.tag.title.lower()
-    title = normalize(title, " ", "+")
+    title = mp3file.tag.title
 
     url="https://www.lyrics.com/artist/{}".format(artist)
     soup = bs(url)
@@ -268,7 +271,7 @@ def vagalume(mp3file):
         urlescape: '',
         ' ': '-'
     }
-    artist = mp3file.tag.artist.lower()
+    artist = mp3file.tag.album_artist.lower()
     artist = normalize(artist, translate)
     artist = re.sub(r'\-{2,}', '-', artist)
     title = mp3file.tag.title.lower()
@@ -290,10 +293,17 @@ def vagalume(mp3file):
 def lyricsmode(mp3file):
     '''Returns the lyrics found in lyricsmode.com for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist
-    artist = artist.lower().replace(' ', '_')
-    title = mp3file.tag.title
-    title = title.lower().replace(' ', '_')
+    translate = {
+        urlescape: "",
+        " ": "_"
+    }
+    artist = mp3file.tag.album_artist.lower()
+    artist = normalize(artist, translate)
+    title = mp3file.tag.title.lower()
+    title = normalize(title, translate)
+
+    artist = re.sub(r'\_{2,}', '_', artist)
+    title = re.sub(r'\_{2,}', '_', title)
 
     url="http://www.lyricsmode.com/lyrics/{}/{}/{}.html".format(artist[0],
             artist, title)
@@ -306,15 +316,22 @@ def lyricsmode(mp3file):
 def letras(mp3file):
     '''Returns the lyrics found in letras.com for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist.lower()
-    artist = normalize(artist, "_@,;&\\/\"\'", "")
-    artist = normalize(artist, " ", "-")
+    translate = {
+        "&": "a",
+        urlescape: "",
+        " ": "-"
+    }
+    artist = mp3file.tag.album_artist.lower()
+    artist = normalize(artist, translate)
     title = mp3file.tag.title.lower()
-    title = normalize(title, "_@,;&\\/\"", "_")
+    title = normalize(title, translate)
 
     url="https://www.letras.com/{}/{}/".format(artist, title)
     soup = bs(url)
     content = soup.find('article')
+    if not content:
+        return ""
+
     text=""
     for br in content.find_all('br'):
         br.replace_with('\n')
@@ -327,21 +344,20 @@ def letras(mp3file):
 def musica(mp3file):
     '''Returns the lyrics found in musica.com for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.artist.title()
+    safe = "?=:/"
+    artist = mp3file.tag.album_artist.title()
     artist = normalize(artist)
-    title = mp3file.tag.title
+    title = mp3file.tag.title.title()
     title = normalize(title.lower())
 
-    url="https://www.musica.com/letras.asp?t2={}".format(artist)
-    print(url)
-    soup = bs(url)
+    url="https://www.musica.com/letras.asp?t2="+artist
+    soup = bs(url, safe=safe)
     first_res = soup.find(href=re.compile('https://www.musica.com/letras.asp\?letras=.*'))
     if first_res is None:
         return ""
 
     url=first_res['href']
-    print(url)
-    soup = bs(url)
+    soup = bs(url, safe=safe)
     for a in soup.find_all('a'):
         if re.search(title+"$", a.text, re.IGNORECASE):
             first_res = a
@@ -352,8 +368,11 @@ def musica(mp3file):
 
     url = "https://www.musica.com/"+first_res['href']
     print(url)
-    soup = bs(url)
+    soup = bs(url, safe=safe)
     content = soup.p
+    if not content:
+        return ""
+
     for rem in content.find_all('font'):
         rem.unwrap()
     for googlead in content.find_all(['script', 'ins']):
@@ -364,7 +383,6 @@ def musica(mp3file):
     text = re.sub(r'<.?br.?>','\n', text)
 
     return text.strip()
-
 
 
 # sources = [
@@ -378,19 +396,9 @@ def musica(mp3file):
 #     vagalume,
 #     letrasmus,
 #     lyricsmode,
-#     musica,
-#     lyricscom
+#     lyricscom,
+#     musica
 # ]
-sources = [
-        azlyrics,
-        metrolyrics,
-        lyricswikia,
-        darklyrics,
-        metalarchives,
-        genius,
-        musixmatch,
-        vagalume
-]
 
 class Stats:
     def __init__(self):
@@ -449,52 +457,54 @@ def run(songs):
         if os.path.isdir(filename):
             sys.stderr.write(filename + " is a directory\n")
             continue
-        try:
-            audiofile = eyed3.load(filename)
-            lyrics=""
-            found = False
+        # try:
+        audiofile = eyed3.load(filename)
+        lyrics=""
+        found = False
 
-            for source in sources:
-                try:
-                    lyrics = source(audiofile)
-                    if lyrics != '':
-                        sys.stderr.write(f'++ {source.__name__}: Found lyrics for {filename}\n')
-                        sys.stderr.flush()
-                        good.write(filename+'\n')
-                        good.flush()
-                        found = True
-                        break
-                    else:
-                        sys.stderr.write('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
-                        sys.stderr.flush()
-                except HTTPError as e:
-                    sys.stderr.write(f'== {source.__name__}: {e}\n')
+        for source in sources:
+            try:
+                lyrics = source(audiofile)
+                if lyrics != '':
+                    sys.stderr.write(f'++ {source.__name__}: Found lyrics for {filename}\n')
                     sys.stderr.flush()
-                    pass
-                # except Exception as e:
-                #     sys.stderr.write(f'== {source.__name__}: {e}\n')
-                #     sys.stderr.flush()
-                #     pass
-            else:
-                if not found:
-                    sys.stderr.write('XX Nobody found find lyrics for ' + filename + '\n')
+                    good.write(filename+'\n')
+                    good.flush()
+                    found = True
+                    # break
+                else:
+                    sys.stderr.write('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
                     sys.stderr.flush()
-                    bad.write(filename+'\n')
-                    bad.flush()
-                    continue
+            except (HTTPError, URLError) as e:
+                sys.stderr.write(f'== {source.__name__}: {e}\n')
+                sys.stderr.flush()
+            except HTTPException as e:
+                pass
+            # except Exception as e:
+            #     sys.stderr.write(f'== {source.__name__}: {e}\n')
+            #     sys.stderr.flush()
+            #     pass
+        else:
+            if not found:
+                sys.stderr.write('XX Nobody found find lyrics for ' + filename + '\n')
+                sys.stderr.flush()
+                bad.write(filename+'\n')
+                bad.flush()
+                continue
 
-            # audiofile.tag.lyrics.set(u''+lyrics)
-            # print("=== {} - {}".format(audiofile.tag.artist, audiofile.tag.title))
-            # audiofile.tag.save()
-            # print(lyrics)
-            # print("Lyrics added for "+filename)
-        except IOError:
-            sys.stderr.write(f'Err: Could not operate with file: {filename}\n')
+        # audiofile.tag.lyrics.set(u''+lyrics)
+        # print("=== {} - {}".format(audiofile.tag.artist, audiofile.tag.title))
+        # audiofile.tag.save()
+        # print(lyrics)
+        # print("Lyrics added for "+filename)
+        # except IOError as e:
+        #     sys.stderr.write(f'Err({filename}): {e}\n')
+        #     sys.stderr.flush()
         # except Exception as e:
         #     print (e)
         #     sys.stderr.write('Err: Could not add lyrics for '+filename + '\n')
-    close(good)
-    close(bad)
+    good.close()
+    bad.close()
 
 
 jobcount=0
@@ -504,6 +514,10 @@ mp3files=[]
 def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
+    global jobcount
+    global stats
+    global mp3files
+
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
     # group = parser.add_mutually_exclusive_group()
@@ -553,14 +567,13 @@ def parseargv():
         sys.stderr.write("Err: No files specified\n")
         return 2
 
-    print(mp3files)
-    return mp3files
+    return 0
 
 # Yes I know this is not the most pythonic way to do things, but it helps me
 # organize my code.
 def main():
     ret = parseargv()
-    if type(ret) == int and ret != 0:
+    if ret != 0:
         return ret
 
     start = time.time()
@@ -569,6 +582,7 @@ def main():
         run(ret)
     except KeyboardInterrupt:
         print ("Interrupted")
+
     elapsed = time.time() - start
     output = "%d:%02d:%02d" % (elapsed/3600,(elapsed/3600)/60,(elapsed%3600)%60)
     print (output)
