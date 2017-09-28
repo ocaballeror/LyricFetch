@@ -431,10 +431,10 @@ class Record:
         else:
             success_rate = (self.successes*100/(self.successes + self.fails))
 
-        return f'''Successes: %d
-Fails: %d
-Success rate: %.2f%%
-Average runtime: %.2f s''' % (self.successes, self.fails, success_rate, avg(self.runtimes))
+        return f"""Successes: {self.successes}
+Fails: {self.fails}
+Success rate: {success_rate:.2f}%
+Average runtime: {avg(self.runtimes):.2f}s"""
 
     def __repr__(self):
         return self.__str__()
@@ -501,9 +501,9 @@ class Stats:
         string = f"""Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
-    Most useful source: {best[0]} ({best[1]} lyrics found)
-    Fastest website to scrape: {fastest[0]} (Avg: {fastest[1]}s per search)
-    Average time per website: {self.avg_time()}s
+    Most useful source: {best[0].capitalize()} ({best[1]:.2f} lyrics found)
+    Fastest website to scrape: {fastest[0].capitalize()} (Avg: {fastest[1]:.2f}s per search)
+    Average time per website: {self.avg_time():.2f}s
 
     PER WEBSITE STATS:
     """
