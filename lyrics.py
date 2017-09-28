@@ -160,27 +160,35 @@ def genius(mp3file):
     soup = bs(url)
     return soup.p.get_text().strip()
 
-# IMPROVE THIS. Use this query to get a json with the ID of the song:
-# http://www.metal-archives.com/search/ajax-advanced/searching/songs/?songTitle={title}&;bandName={artist}&ExactBandMatch=1
 def metalarchives(mp3file):
     '''Returns the lyrics found in MetalArchives for the specified mp3 file or an
     empty string if not found'''
     artist = mp3file.tag.album_artist.capitalize()
     artist = normalize(artist, ' ', '_')
-    album = mp3file.tag.album.capitalize()
-    album = normalize(album, ' ', '_')
-    trackno = mp3file.tag.track_num[0]
+    title = mp3file.tag.title.capitalize()
+    title = normalize(title, ' ', '_')
 
-    url = "https://www.metal-archives.com/albums/{}/{}/".format(artist, album)
+    url="http://www.metal-archives.com/search/ajax-advanced/searching/songs/"
+    url+=f"?songTitle={title}&bandName={artist}&ExactBandMatch=1"
     soup = bs(url)
-    song_ids = soup.select('.table_lyrics tr.odd,tr.even')
-    if not song_ids:
-        return ''
-
-    song_id = song_ids[trackno-1].a['name']
+    links = soup.find_all('a')
+    pos = 2
+    while pos < len(links)-1:
+        print(links[pos])
+        song_id = re.search(r'lyricsLink_([0-9]*)', str(links[pos]))
+        pos+=3
+        if song_id:
+            song_id = song_id.group(1)
+        else:
+            continue
     url="https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
+        try:
     soup = bs(url)
     return soup.get_text().strip()
+        except (HTTPError, URLError):
+            continue
+
+    return ""
 
 def lyricswikia(mp3file):
     '''Returns the lyrics found in lyrics.wikia.com for the specified mp3 file or an
@@ -542,7 +550,7 @@ def run(songs):
                     good.write(source.__name__[0:3].upper()+": " + filename+'\n')
                     good.flush()
                     found = True
-                    # break
+                    break
                 else:
                     logging.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
                     bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
