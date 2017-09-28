@@ -41,6 +41,7 @@ def bs(url, safe=":/"):
     contents'''
     url = urllib.quote(url,safe=safe)
     logging.debug('URL: '+url)
+    print ('URL: ' + url)
     req = urllib.Request(url, headers={"User-Agent": "foobar"})
     response = urllib.urlopen(req)
     return BeautifulSoup(response.read(), 'html.parser')
@@ -168,23 +169,21 @@ def metalarchives(mp3file):
     title = mp3file.tag.title.capitalize()
     title = normalize(title, ' ', '_')
 
-    url="http://www.metal-archives.com/search/ajax-advanced/searching/songs/"
-    url+=f"?songTitle={title}&bandName={artist}&ExactBandMatch=1"
+    url = "http://www.metal-archives.com/search/ajax-advanced/searching/songs/"
+    url += f"?songTitle={title}&bandName={artist}&ExactBandMatch=1"
     soup = bs(url)
     links = soup.find_all('a')
-    pos = 2
-    while pos < len(links)-1:
-        print(links[pos])
-        song_id = re.search(r'lyricsLink_([0-9]*)', str(links[pos]))
-        pos+=3
+    for link in links:
+        song_id = re.search(r'lyricsLink_([0-9]*)', str(link))
         if song_id:
             song_id = song_id.group(1)
         else:
             continue
-    url="https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
+
+        url="https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
         try:
-    soup = bs(url)
-    return soup.get_text().strip()
+            soup = bs(url)
+            return soup.get_text().strip()
         except (HTTPError, URLError):
             continue
 
@@ -478,7 +477,10 @@ class Stats:
             for rec in self.source_stats.values():
                 total += sum(rec.runtimes)
                 count += len(rec.runtimes)
-            return total/count
+            if count == 0:
+                return 0
+            else:
+                return total/count
         else:
             if callable(source):
                 return self.source_stats[source.__name__].avg_time
@@ -496,7 +498,7 @@ class Stats:
         for source,rec in self.source_stats.items():
             if best is None or rec.successes > best[1]:
                 best = (source, rec.successes)
-            if fastest is None or self.avg_time(source) > fastest[1]:
+            if fastest is None or self.avg_time(source) < fastest[1]:
                 fastest = (source, self.avg_time(source))
             found += rec.successes
             total_time += sum(rec.runtimes)
@@ -505,6 +507,7 @@ class Stats:
         # fastest_source = min([self.avg_time(source) for source in sources])
         # found = sum([rec.successes for rec in self.source_stats.values()])
         # total_time = sum([sum(rec.runtimes) for rec in self.source_stats.values()])
+        total_time = "%d:%02d:%02d" % (total_time/3600,(total_time/3600)/60,(total_time%3600)%60)
         notfound = len(mp3files) - found
         string = f"""Total runtime: {total_time}
     Lyrics found: {found}
@@ -553,14 +556,14 @@ def run(songs):
                     break
                 else:
                     logging.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
-                    bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
-                    bad.flush()
+                    # bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
+                    # bad.flush()
             except (HTTPError, URLError) as e:
                 if not hasattr(e, 'code') or e.code != 404:
                     logging.exception(f'== {source.__name__}: {e}\n')
 
-                bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
-                bad.flush()
+                # bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
+                # bad.flush()
             except HTTPException as e:
                 pass
             finally:
