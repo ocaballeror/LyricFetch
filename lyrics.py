@@ -159,7 +159,11 @@ def genius(mp3file):
 
     url = "https://www.genius.com/{}-{}-lyrics".format(artist, title)
     soup = bs(url)
-    return soup.p.get_text().strip()
+    content = soup.p
+    if not content:
+        return ""
+
+    return content.get_text().strip()
 
 def metalarchives(mp3file):
     '''Returns the lyrics found in MetalArchives for the specified mp3 file or an
@@ -432,15 +436,18 @@ class Record:
         self.runtimes.append(runtime)
         self.avg_time /= len(self.runtimes)
 
-    def __str__(self):
+    def success_rate(self):
         if self.successes + self.fails == 0:
             success_rate = 0
         else:
-            success_rate = (self.successes*100/(self.successes + self.fails))
+            success_rate = (self.successes*100/(self.successes + self.fails)       )
 
+        return success_rate
+
+    def __str__(self):
         return f"""Successes: {self.successes}
 Fails: {self.fails}
-Success rate: {success_rate:.2f}%
+Success rate: {self.success_rate():.2f}%
 Average runtime: {avg(self.runtimes):.2f}s"""
 
     def __repr__(self):
@@ -492,12 +499,13 @@ class Stats:
         is meant to be called at the end of the program'''
         best = None
         fastest = None
+        sr = None
         found = 0
         notfound = 0
         total_time = 0
         for source,rec in self.source_stats.items():
             if best is None or rec.successes > best[1]:
-                best = (source, rec.successes)
+                best = (source, rec.successes, rec.success_rate())
             if fastest is None or self.avg_time(source) < fastest[1]:
                 fastest = (source, self.avg_time(source))
             found += rec.successes
@@ -512,7 +520,7 @@ class Stats:
         string = f"""Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
-    Most useful source: {best[0].capitalize()} ({best[1]:.2f} lyrics found)
+    Most useful source: {best[0].capitalize()} ({best[1]} lyrics found) ({best[2]}% success rate)
     Fastest website to scrape: {fastest[0].capitalize()} (Avg: {fastest[1]:.2f}s per search)
     Average time per website: {self.avg_time():.2f}s
 
