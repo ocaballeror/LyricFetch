@@ -47,7 +47,7 @@ def bs(url, safe=":/"):
     return BeautifulSoup(response.read(), 'html.parser')
 
 # Contains the characters usually removed or replaced in URLS
-urlescape = ".¿?_@,;&\\/()'\"-!¡"
+urlescape = ".¿?%_@,;&\\/()'\"-!¡"
 urlescapeS = ' '+urlescape
 def normalize(string, charsToRemove=None, replacement=''):
     """Remove accented characters and such.
@@ -421,6 +421,33 @@ sources = [
     musica
 ]
 
+def id_source(source):
+    if source == azlyrics:
+        return 'AZL'
+    elif source == metrolyrics:
+        return 'MET'
+    elif source == lyricswikia:
+        return 'WIK'
+    elif source == darklyrics:
+        return 'DAR'
+    elif source == metalarchives:
+        return 'ARC'
+    elif source == genius:
+        return 'GEN'
+    elif source == musixmatch:
+        return 'XMA'
+    elif source == vagalume:
+        return 'VAG'
+    elif source == letras:
+        return 'LET'
+    elif source == lyricsmode:
+        return 'LYM'
+    elif source == lyricscom:
+        return 'LYC'
+    elif source == musica:
+        return 'MUS'
+
+
 def avg(values):
     """Returns the average of a list of numbers"""
     if values == []:
@@ -566,22 +593,25 @@ def run(songs):
                 end = time.time()
                 if lyrics != '':
                     logging.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
-                    good.write(source.__name__[0:3].upper()+": " + filename+'\n')
+                    good.write(id_source(source)+": " + filename+'\n')
                     good.flush()
                     found = True
                     break
                 else:
                     logging.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
-                    # bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
+                    # bad.write(id_source(source)+": " + filename+'\n')
                     # bad.flush()
             except (HTTPError, URLError) as e:
                 if not hasattr(e, 'code') or e.code != 404:
                     logging.exception(f'== {source.__name__}: {e}\n')
 
-                # bad.write(source.__name__[0:3].upper()+": " + filename+'\n')
+                # bad.write(id_source(source)+": " + filename+'\n')
                 # bad.flush()
             except HTTPException as e:
+                # bad.write(id_source(source)+": " + filename+'\n')
+                # bad.flush()
                 pass
+
             finally:
                 end = time.time()
                 stats.add_result(source, end-start, found)
@@ -591,7 +621,7 @@ def run(songs):
         else:
             if not found:
                 logging.warning('XX Nobody found find lyrics for ' + filename + '\n')
-                bad.write(filename+'\n')
+                bad.write(id_source(source)+": " + filename+'\n')
                 bad.flush()
                 continue
 
