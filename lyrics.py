@@ -321,7 +321,15 @@ def lyricsmode(mp3file):
     artist = re.sub(r'\_{2,}', '_', artist)
     title = re.sub(r'\_{2,}', '_', title)
 
-    url = "http://www.lyricsmode.com/lyrics/{}/{}/{}.html".format(artist[0],
+    if artist[0:4].lower() == "the ":
+        artist = artist[4:]
+
+    if artist[0:2].lower() == 'a ':
+        prefix = artist[2]
+    else:
+        prefix = artist[0]
+
+    url = "http://www.lyricsmode.com/lyrics/{}/{}/{}.html".format(prefix,
             artist, title)
     soup = bs(url)
     content = soup.find(id="lyrics_text")
@@ -374,7 +382,7 @@ def musica(mp3file):
     url = first_res['href']
     soup = bs(url, safe = safe)
     for a in soup.find_all('a'):
-        if re.search(title+"$", a.text, re.IGNORECASE):
+        if re.search(re.escape(title)+"$", a.text, re.IGNORECASE):
             first_res = a
             break
     else:
