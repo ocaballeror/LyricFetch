@@ -555,7 +555,8 @@ class Stats:
         string = f"""Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
-    Most useful source: {best[0].capitalize()} ({best[1]} lyrics found) ({best[2]}% success rate)
+    Most useful source: {best[0].capitalize()} ({best[1]} lyrics found)\
+({best[2]:.2f}% success rate)
     Fastest website to scrape: {fastest[0].capitalize()} (Avg: {fastest[1]:.2f}s per search)
     Average time per website: {self.avg_time():.2f}s
 
@@ -571,6 +572,8 @@ def run(songs):
     stats = Stats()
     good = open('found', 'w')
     bad  = open('notfound', 'w')
+    dead = open('notfoundatall', 'w')
+    popular = open('superfound', 'w')
 
     for filename in songs:
         logging.info(filename)
@@ -584,9 +587,9 @@ def run(songs):
         audiofile = eyed3.load(filename)
         lyrics = ""
         found = False
+        foundcount = 0
 
         for source in sources:
-            found = False
             try:
                 start = time.time()
                 lyrics = source(audiofile)
@@ -596,21 +599,21 @@ def run(songs):
                     good.write(id_source(source)+": " + filename+'\n')
                     good.flush()
                     found = True
+                    foundcount += 1
                     break
                 else:
                     logging.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
-                    # bad.write(id_source(source)+": " + filename+'\n')
-                    # bad.flush()
+                    bad.write(id_source(source)+": " + filename+'\n')
+                    bad.flush()
             except (HTTPError, URLError) as e:
                 if not hasattr(e, 'code') or e.code != 404:
                     logging.exception(f'== {source.__name__}: {e}\n')
 
-                # bad.write(id_source(source)+": " + filename+'\n')
-                # bad.flush()
+                bad.write(id_source(source)+": " + filename+'\n')
+                bad.flush()
             except HTTPException as e:
-                # bad.write(id_source(source)+": " + filename+'\n')
-                # bad.flush()
-                pass
+                bad.write(id_source(source)+": " + filename+'\n')
+                bad.flush()
 
             finally:
                 end = time.time()
@@ -621,9 +624,12 @@ def run(songs):
         else:
             if not found:
                 logging.warning('XX Nobody found find lyrics for ' + filename + '\n')
-                bad.write(id_source(source)+": " + filename+'\n')
-                bad.flush()
-                continue
+                dead.write(filename+'\n')
+                dead.flush()
+
+            popular.write(f"{foundcount} {filename}\n")
+            popular.flush()
+            continue
 
         # audiofile.tag.lyrics.set(u''+lyrics)
         # print("=== {} - {}".format(audiofile.tag.artist, audiofile.tag.title))
