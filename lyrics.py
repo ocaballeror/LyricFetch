@@ -41,7 +41,6 @@ def bs(url, safe=":/"):
     contents'''
     url = urllib.quote(url,safe=safe)
     logging.debug('URL: '+url)
-    print ('URL: ' + url)
     req = urllib.Request(url, headers={"User-Agent": "foobar"})
     response = urllib.urlopen(req)
     return BeautifulSoup(response.read(), 'html.parser')
@@ -626,23 +625,19 @@ def run(songs):
                 logging.warning('XX Nobody found find lyrics for ' + filename + '\n')
                 dead.write(filename+'\n')
                 dead.flush()
+            else:
+                audiofile.tag.lyrics.set(u''+lyrics)
+                audiofile.tag.save()
+                print("Lyrics added for "+filename)
 
             popular.write(f"{foundcount} {filename}\n")
             popular.flush()
             continue
 
-        # audiofile.tag.lyrics.set(u''+lyrics)
-        # print("=== {} - {}".format(audiofile.tag.artist, audiofile.tag.title))
-        # audiofile.tag.save()
-        # print(lyrics)
-        # print("Lyrics added for "+filename)
-        # except IOError as e:
-        #     logging.exception(f'Err({filename}): {e}\n')
-        # except Exception as e:
-        #     logging.exception(e)
-        #     logging.warning('Could not add lyrics for '+filename + '\n')
     good.close()
     bad.close()
+    popular.close()
+    dead.close()
     return stats
 
 jobcount = 0
@@ -658,7 +653,6 @@ def parseargv():
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
-    # group = parser.add_mutually_exclusive_group()
     parser.add_argument("-j", "--jobs", help="Number of parallel processes", type=int,
             default=0)
     parser.add_argument("-f", "--force", help="Confirm the use of too many processes",
