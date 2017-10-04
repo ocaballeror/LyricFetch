@@ -31,16 +31,27 @@ from urllib.error import *
 from http.client import HTTPException
 from bs4 import NavigableString, Tag, BeautifulSoup
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Send verbose logs to a log file
+debuglogger = logging.FileHandler('debuglog', 'w')
+debuglogger.setLevel(logging.DEBUG)
+logger.addHandler(debuglogger)
+
+# Send error logs to an errlog file
+errlogger = logging.FileHandler('errlog', 'w')
+errlogger.setLevel(logging.WARNING)
+logger.addHandler(errlogger)
+
+# Discard eyed3 messages unless they're important
 logging.getLogger("eyed3.mp3.headers").setLevel(logging.CRITICAL)
-logging.basicConfig(filename='log',filemode='w',level=logging.DEBUG)
-logging.basicConfig(filename='errlog',filemode='w', loglevel=logging.WARNING)
-logging.getLogger(__name__).setLevel(logging.DEBUG)
 
 def bs(url, safe=":/"):
     '''Requests the specified url and returns a BeautifulSoup object with its
     contents'''
     url = urllib.quote(url,safe=safe)
-    logging.debug('URL: '+url)
+    logger.debug('URL: '+url)
     req = urllib.Request(url, headers={"User-Agent": "foobar"})
     response = urllib.urlopen(req)
     return BeautifulSoup(response.read(), 'html.parser')
@@ -575,7 +586,7 @@ def run(songs):
     popular = open('superfound', 'w')
 
     for filename in songs:
-        logging.info(filename)
+        logger.info(filename)
         if not os.path.exists(filename):
             sys.stderr.write(f"Err: File '{filename}' not found\n")
             continue
@@ -594,19 +605,19 @@ def run(songs):
                 lyrics = source(audiofile)
                 end = time.time()
                 if lyrics != '':
-                    logging.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
+                    logger.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
                     good.write(id_source(source)+": " + filename+'\n')
                     good.flush()
                     found = True
                     foundcount += 1
                     break
                 else:
-                    logging.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
+                    logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
                     bad.write(id_source(source)+": " + filename+'\n')
                     bad.flush()
             except (HTTPError, URLError) as e:
                 if not hasattr(e, 'code') or e.code != 404:
-                    logging.exception(f'== {source.__name__}: {e}\n')
+                    logger.exception(f'== {source.__name__}: {e}\n')
 
                 bad.write(id_source(source)+": " + filename+'\n')
                 bad.flush()
@@ -622,13 +633,14 @@ def run(songs):
             #     loggging.exception(f'== {source.__name__}: {e}\n')
         else:
             if not found:
-                logging.warning('XX Nobody found find lyrics for ' + filename + '\n')
+                logger.warning('XX Nobody found find lyrics for ' + filename + '\n')
                 dead.write(filename+'\n')
                 dead.flush()
             else:
-                audiofile.tag.lyrics.set(u''+lyrics)
-                audiofile.tag.save()
-                print("Lyrics added for "+filename)
+                # audiofile.tag.lyrics.set(u''+lyrics)
+                # audiofile.tag.save()
+                # print("Lyrics added for "+filename)
+                pass
 
             popular.write(f"{foundcount} {filename}\n")
             popular.flush()
@@ -708,7 +720,7 @@ def main():
     if ret != 0:
         return ret
 
-    logging.debug("Running with "+str(mp3files))
+    logger.debug("Running with "+str(mp3files))
     try:
         stats = run(mp3files)
         stats.print_stats()
