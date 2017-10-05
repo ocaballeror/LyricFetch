@@ -12,6 +12,7 @@
 # genius.com          X
 # vagalume.com.br     X
 # musixmatch.com      X
+# songlyrics.com
 # lyricsmode.com      X
 # metal-archives.com  X
 # letras.mus.br       X
@@ -73,7 +74,8 @@ def normalize(string, charsToRemove=None, replacement=''):
         'í': 'i',
         'ó': 'o',
         'ú': 'u',
-        'ü': 'u'
+        'ü': 'u',
+        'ñ': 'n'
     }))
 
     if isinstance(charsToRemove, dict):
@@ -169,11 +171,13 @@ def genius(mp3file):
 
     url = "https://www.genius.com/{}-{}-lyrics".format(artist, title)
     soup = bs(url)
-    content = soup.p
-    if not content:
-        return ""
+    for content in soup.find_all('p'):
+        if content:
+            text = content.get_text().strip()
+            if text:
+                return text
 
-    return content.get_text().strip()
+    return ''
 
 def metalarchives(mp3file):
     '''Returns the lyrics found in MetalArchives for the specified mp3 file or an
