@@ -233,13 +233,13 @@ def lyricswikia(mp3file):
                 nlcount += 1
         else:
             nlcount = 0
-            text += str(line).replace('<br/>','\n')
+            text += str(line).replace('<br/>', '\n')
     return text.strip()
 
 def musixmatch(mp3file):
     '''Returns the lyrics found in musixmatch for the specified mp3 file or an
     empty string if not found'''
-    escape = re.sub("'-¡¿",'',urlescape)
+    escape = re.sub("'-¡¿", '', urlescape)
     translate = {
         escape: "",
         " ": "-"
@@ -263,6 +263,31 @@ def musixmatch(mp3file):
         text += p.get_text()
 
     return text.strip()
+
+# Songlyrics is basically a mirror for musixmatch, so it helps us getting
+# around musixmatch's bot detection (they block IPs pretty easily)
+def songlyrics(mp3file):
+    '''Returns the lyrics found in songlyrics.com for the specified mp3 file or
+    an empty string if not found'''
+    translate = {
+        urlescape: "",
+        " ": "-"
+    }
+    artist = mp3file.tag.album_artist.lower()
+    artist = normalize(artist, translate)
+    title = mp3file.tag.title.lower()
+    title = normalize(title, translate)
+
+    artist = re.sub(r'\-{2,}', '-', artist)
+    title = re.sub(r'\-{2,}', '-', title)
+
+    url = "http://www.songlyrics.com/{}/{}-lyrics".format(artist, title)
+    soup = bs(url)
+    text = soup.find(id='songLyricsDiv')
+    if not text:
+        return ""
+
+    return text.getText().strip()
 
 def lyricscom(mp3file):
     '''Returns the lyrics found in lyrics.com for the specified mp3 file or an
@@ -424,6 +449,7 @@ sources = [
     metalarchives,
     genius,
     musixmatch,
+    songlyrics,
     vagalume,
     letras,
     lyricsmode,
@@ -446,6 +472,8 @@ def id_source(source):
         return 'GEN'
     elif source == musixmatch:
         return 'XMA'
+    elif source == songlyrics:
+        return 'SON'
     elif source == vagalume:
         return 'VAG'
     elif source == letras:
@@ -600,6 +628,7 @@ def run(songs):
         foundcount = 0
 
         for source in sources:
+            found = False
             try:
                 start = time.time()
                 lyrics = source(audiofile)
@@ -610,18 +639,21 @@ def run(songs):
                     good.flush()
                     found = True
                     foundcount += 1
+
+                    # audiofile.tag.lyrics.set(u''+lyrics)
+                    # audiofile.tag.save()
+                    # print("Lyrics added for "+filename)
                     break
                 else:
                     logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
                     bad.write(id_source(source)+": " + filename+'\n')
                     bad.flush()
-            except (HTTPError, URLError) as e:
+
+            except (HTTPError, HTTPException, URLError, ConnectionError) as e:
                 if not hasattr(e, 'code') or e.code != 404:
                     logger.exception(f'== {source.__name__}: {e}\n')
 
-                bad.write(id_source(source)+": " + filename+'\n')
-                bad.flush()
-            except HTTPException as e:
+                logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
                 bad.write(id_source(source)+": " + filename+'\n')
                 bad.flush()
 
@@ -629,18 +661,11 @@ def run(songs):
                 end = time.time()
                 stats.add_result(source, end-start, found)
 
-            # except Exception as e:
-            #     loggging.exception(f'== {source.__name__}: {e}\n')
         else:
             if not found:
                 logger.warning('XX Nobody found find lyrics for ' + filename + '\n')
                 dead.write(filename+'\n')
                 dead.flush()
-            else:
-                # audiofile.tag.lyrics.set(u''+lyrics)
-                # audiofile.tag.save()
-                # print("Lyrics added for "+filename)
-                pass
 
             popular.write(f"{foundcount} {filename}\n")
             popular.flush()
