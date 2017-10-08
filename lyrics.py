@@ -22,6 +22,7 @@ import sys
 import os
 import time
 import re
+import math
 import argparse
 import glob
 import eyed3
@@ -31,6 +32,7 @@ import urllib.request as urllib
 from urllib.error import *
 from http.client import HTTPException
 from bs4 import NavigableString, Tag, BeautifulSoup
+from multiprocessing import Pool
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -508,10 +510,11 @@ class Record:
         self.runtimes  = []
 
     def add_runtime(self, runtime):
-        self.avg_time *= len(self.runtimes)
-        self.avg_time += runtime
-        self.runtimes.append(runtime)
-        self.avg_time /= len(self.runtimes)
+        if runtime != 0:
+            self.avg_time *= len(self.runtimes)
+            self.avg_time += runtime
+            self.runtimes.append(runtime)
+            self.avg_time /= len(self.runtimes)
 
     def success_rate(self):
         if self.successes + self.fails == 0:
@@ -539,7 +542,7 @@ class Stats:
         for name in sources:
             self.source_stats[name.__name__] = Record()
 
-    def add_result(self, source, runtime, found):
+    def add_result(self, source, found, runtime):
         """Adds a new record to the statistics 'database'. This function is
         intended to be called after a website has been scraped. The arguments
         indicate the function that was called, the time taken to scrap the
@@ -554,13 +557,18 @@ class Stats:
     def avg_time(self, source=None):
         """Returns the average time taken to scrape lyrics. If a string or a
         function is passed as source, return the average time taken to scrape
-        lyrics from this source, otherwise return the total average"""
+        lyrics from that source, otherwise return the total average"""
         total = 0
         count = 0
         if source is None:
+            runtimes = []
             for rec in self.source_stats.values():
-                total += sum(rec.runtimes)
-                count += len(rec.runtimes)
+                for runtime in rec.runtimes:
+                    if runtime != 0:
+                        runtimes.append(runtime)
+
+            total = sum(runtimes)
+            count = len(runtimes)
             if count == 0:
                 return 0
             else:
@@ -575,7 +583,9 @@ class Stats:
         '''Print a series of relevant stats about a full execution. This function
         is meant to be called at the end of the program'''
         best = None
+        worst = None
         fastest = None
+        slowest = None
         sr = None
         found = 0
         notfound = 0
@@ -583,8 +593,15 @@ class Stats:
         for source,rec in self.source_stats.items():
             if best is None or rec.successes > best[1]:
                 best = (source, rec.successes, rec.success_rate())
-            if fastest is None or self.avg_time(source) < fastest[1]:
-                fastest = (source, self.avg_time(source))
+            if worst is None or rec.successes < worst[1]:
+                worst = (source, rec.successes, rec.success_rate())
+
+            avg = self.avg_time(source)
+            if fastest is None or (avg != 0 and avg < fastest[1]):
+                fastest = (source, avg)
+            if slowest is None or (avg != 0 and avg > slowest[1]):
+                slowest = (source, avg)
+
             found += rec.successes
             total_time += sum(rec.runtimes)
 
@@ -599,7 +616,10 @@ class Stats:
     Lyrics not found:{notfound}
     Most useful source: {best[0].capitalize()} ({best[1]} lyrics found)\
 ({best[2]:.2f}% success rate)
+    Least useful source: {worst[0].capitalize()} ({worst[1]} lyrics found)\
+({worst[2]:.2f}% success rate)
     Fastest website to scrape: {fastest[0].capitalize()} (Avg: {fastest[1]:.2f}s per search)
+    Slowest website to scrape: {slowest[0].capitalize()} (Avg: {slowest[1]:.2f}s per search)
     Average time per website: {self.avg_time():.2f}s
 
     PER WEBSITE STATS:
@@ -610,82 +630,97 @@ class Stats:
 
         print(string)
 
+class Mp_res:
+    """Contains the results generated from run_mp, so they can be returned as a
+    single variable"""
+    def __init__(self, source=None, filename="", runtimes={}):
+
+        # The source where the lyrics were found (or None if they weren't)
+        self.source = source
+
+        # The name of the file whose lyrics we were looking for
+        self.filename = filename
+
+        # A dictionary that maps every source to the time taken to scrape
+        # the website. Keys corresponding to unused sources will be missing
+        self.runtimes = runtimes
+
+def run_mp(filename):
+    """Searches for lyrics of a single song and returns an mp_res object with
+    the various stats collected in the process. It is intended to be an
+    auxiliary function to run, which will invoke it as a parallel process"""
+    logger.info(filename)
+    if not os.path.exists(filename):
+        logger.error(f"Err: File '{filename}' not found")
+        return None
+    if os.path.isdir(filename):
+        logger.error(f"Err: File '{filename}' is a directory")
+        return None
+
+    audiofile = eyed3.load(filename)
+    lyrics = ""
+
+    start = 0
+    end = 0
+    runtimes = {}
+    for source in sources:
+        try:
+            start = time.time()
+            lyrics = source(audiofile)
+            end = time.time()
+            runtimes[source] = end-start
+
+            if lyrics != '':
+                logger.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
+
+                # audiofile.tag.lyrics.set(u''+lyrics)
+                # audiofile.tag.save()
+                # print("Lyrics added for "+filename)
+                return Mp_res(source, filename, runtimes)
+            else:
+                logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
+
+        except (HTTPError, HTTPException, URLError, ConnectionError) as e:
+            if not hasattr(e, 'code') or e.code != 404:
+                logger.exception(f'== {source.__name__}: {e}\n')
+
+            logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
+
+        finally:
+            end = time.time()
+            runtimes[source] = end-start
+
+    return Mp_res(None, filename, runtimes)
+
 def run(songs):
     stats = Stats()
     good = open('found', 'w')
     bad  = open('notfound', 'w')
-    dead = open('notfoundatall', 'w')
-    popular = open('superfound', 'w')
 
-    for filename in songs:
-        logger.info(filename)
-        if not os.path.exists(filename):
-            sys.stderr.write(f"Err: File '{filename}' not found\n")
-            continue
-        if os.path.isdir(filename):
-            sys.stderr.write(f"Err: File '{filename}' is a directory\n")
-            continue
+    logger.debug("Launching a pool of "+str(jobcount)+" processes")
+    chunksize = math.ceil(len(songs)/os.cpu_count())
+    with Pool(jobcount) as pool:
+        for result in pool.imap_unordered(run_mp, songs, chunksize):
+            if result is None: continue
 
-        audiofile = eyed3.load(filename)
-        lyrics = ""
-        found = False
-        foundcount = 0
+            for source, runtime in result.runtimes.items():
+                stats.add_result(source, result.source == source, runtime)
 
-        for source in sources:
-            found = False
-            try:
-                start = time.time()
-                lyrics = source(audiofile)
-                end = time.time()
-                if lyrics != '':
-                    logger.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
-                    good.write(id_source(source)+": " + filename+'\n')
-                    good.flush()
-                    found = True
-                    foundcount += 1
+            if result.source is not None:
+                good.write(result.filename+'\n')
+            else:
+                bad.write(result.filename+'\n')
 
-                    # audiofile.tag.lyrics.set(u''+lyrics)
-                    # audiofile.tag.save()
-                    # print("Lyrics added for "+filename)
-                    break
-                else:
-                    logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
-                    bad.write(id_source(source)+": " + filename+'\n')
-                    bad.flush()
-
-            except (HTTPError, HTTPException, URLError, ConnectionError) as e:
-                if not hasattr(e, 'code') or e.code != 404:
-                    logger.exception(f'== {source.__name__}: {e}\n')
-
-                logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
-                bad.write(id_source(source)+": " + filename+'\n')
-                bad.flush()
-
-            finally:
-                end = time.time()
-                stats.add_result(source, end-start, found)
-
-        else:
-            if not found:
-                logger.warning('XX Nobody found find lyrics for ' + filename + '\n')
-                dead.write(filename+'\n')
-                dead.flush()
-
-            popular.write(f"{foundcount} {filename}\n")
-            popular.flush()
-            continue
 
     good.close()
     bad.close()
-    popular.close()
-    dead.close()
     return stats
 
-jobcount = 0
+jobcount = 1
 stats = False
 mp3files = []
 
-def parseargv():
+def parseargv()1
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
     global jobcount
@@ -695,7 +730,7 @@ def parseargv():
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
     parser.add_argument("-j", "--jobs", help="Number of parallel processes", type=int,
-            default=0)
+            default=1)
     parser.add_argument("-f", "--force", help="Confirm the use of too many processes",
             action="store_true")
     parser.add_argument("-s", "--stats", help="Output some stats about the"
@@ -710,17 +745,22 @@ def parseargv():
 
     if args.jobs:
         if args.jobs > os.cpu_count() and not args.force:
-            sys.stderr.write("You specified a number of parallel threads"
+            logger.error("You specified a number of parallel threads"
             " greater than the number of processors in your system. To continue"
-            " at your own risk you must confirm you choice with -f\n")
+            " at your own risk you must confirm you choice with -f")
             return 1
-        jobcount = args.jobs
+        elif args.jobs <= 0:
+            logger.error(f"{sys.argv[0]}: error: argument -j/--jobs should"
+            " have a value greater than zero")
+            return 1
+        else:
+            jobcount = args.jobs
 
     # Argsparse would not let me create a mutually exclusive group with
     # positional arguments, so I made the checking myself
     if args.files and args.recursive:
         parser.print_usage(sys.stderr)
-        sys.stderr.write(f"{sys.argv[0]}: error: argument -r/--recursive: not"
+        logger.error(f"{sys.argv[0]}: error: argument -r/--recursive: not"
                 " allowed with positional arguments")
         return 2
 
@@ -737,7 +777,7 @@ def parseargv():
                 else:
                     mp3files.append(line)
     else:
-        sys.stderr.write("Err: No files specified\n")
+        logger.error("Err: No files specified")
         return 2
 
     return 0
@@ -751,8 +791,14 @@ def main():
 
     logger.debug("Running with "+str(mp3files))
     try:
+        start = time.time()
         stats = run(mp3files)
+        end = time.time()
         stats.print_stats()
+        total_time = end-start
+        total_time = "%d:%02d:%02d" % (total_time/3600,(total_time/3600)/60,(total_time%3600)%60)
+        print (f"Total time: {total_time}")
+
     except KeyboardInterrupt:
         print ("Interrupted")
 
