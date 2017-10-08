@@ -510,10 +510,11 @@ class Record:
         self.runtimes  = []
 
     def add_runtime(self, runtime):
-        self.avg_time *= len(self.runtimes)
-        self.avg_time += runtime
-        self.runtimes.append(runtime)
-        self.avg_time /= len(self.runtimes)
+        if runtime != 0:
+            self.avg_time *= len(self.runtimes)
+            self.avg_time += runtime
+            self.runtimes.append(runtime)
+            self.avg_time /= len(self.runtimes)
 
     def success_rate(self):
         if self.successes + self.fails == 0:
@@ -556,13 +557,18 @@ class Stats:
     def avg_time(self, source=None):
         """Returns the average time taken to scrape lyrics. If a string or a
         function is passed as source, return the average time taken to scrape
-        lyrics from this source, otherwise return the total average"""
+        lyrics from that source, otherwise return the total average"""
         total = 0
         count = 0
         if source is None:
+            runtimes = []
             for rec in self.source_stats.values():
-                total += sum(rec.runtimes)
-                count += len(rec.runtimes)
+                for runtime in rec.runtimes:
+                    if runtime != 0:
+                        runtimes.append(runtime)
+
+            total = sum(runtimes)
+            count = len(runtimes)
             if count == 0:
                 return 0
             else:
@@ -577,7 +583,9 @@ class Stats:
         '''Print a series of relevant stats about a full execution. This function
         is meant to be called at the end of the program'''
         best = None
+        worst = None
         fastest = None
+        slowest = None
         sr = None
         found = 0
         notfound = 0
@@ -585,8 +593,15 @@ class Stats:
         for source,rec in self.source_stats.items():
             if best is None or rec.successes > best[1]:
                 best = (source, rec.successes, rec.success_rate())
-            if fastest is None or self.avg_time(source) < fastest[1]:
-                fastest = (source, self.avg_time(source))
+            if worst is None or rec.successes < worst[1]:
+                worst = (source, rec.successes, rec.success_rate())
+
+            avg = self.avg_time(source)
+            if fastest is None or (avg != 0 and avg < fastest[1]):
+                fastest = (source, avg)
+            if slowest is None or (avg != 0 and avg > slowest[1]):
+                slowest = (source, avg)
+
             found += rec.successes
             total_time += sum(rec.runtimes)
 
@@ -601,7 +616,10 @@ class Stats:
     Lyrics not found:{notfound}
     Most useful source: {best[0].capitalize()} ({best[1]} lyrics found)\
 ({best[2]:.2f}% success rate)
+    Least useful source: {worst[0].capitalize()} ({worst[1]} lyrics found)\
+({worst[2]:.2f}% success rate)
     Fastest website to scrape: {fastest[0].capitalize()} (Avg: {fastest[1]:.2f}s per search)
+    Slowest website to scrape: {slowest[0].capitalize()} (Avg: {slowest[1]:.2f}s per search)
     Average time per website: {self.avg_time():.2f}s
 
     PER WEBSITE STATS:
@@ -702,7 +720,7 @@ jobcount = 1
 stats = False
 mp3files = []
 
-def parseargv():
+def parseargv()1
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
     global jobcount
@@ -712,7 +730,7 @@ def parseargv():
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
     parser.add_argument("-j", "--jobs", help="Number of parallel processes", type=int,
-            default=0)
+            default=1)
     parser.add_argument("-f", "--force", help="Confirm the use of too many processes",
             action="store_true")
     parser.add_argument("-s", "--stats", help="Output some stats about the"
