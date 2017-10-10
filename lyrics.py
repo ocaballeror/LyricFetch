@@ -720,7 +720,7 @@ jobcount = 1
 stats = False
 mp3files = []
 
-def parseargv()1
+def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
     global jobcount
