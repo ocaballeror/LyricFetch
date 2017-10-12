@@ -35,7 +35,7 @@ from bs4 import NavigableString, Tag, BeautifulSoup
 from multiprocessing import Pool
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 # Send verbose logs to a log file
 debuglogger = logging.FileHandler('debuglog', 'w')
@@ -75,6 +75,7 @@ def normalize(string, charsToRemove=None, replacement=''):
         'é': 'e',
         'í': 'i',
         'ó': 'o',
+        'ö': 'o',
         'ú': 'u',
         'ü': 'u',
         'ñ': 'n'
@@ -666,8 +667,11 @@ def run_mp(filename):
         logger.warning(f"W: File '{filename}' could not be proccess as an mp3")
         return None
 
-    lyrics = ""
+    if ''.join([l.text for l in audiofile.tag.lyrics]) and not overwrite:
+        logger.debug(f"{filename} already has embedded lyrics")
+        return None
 
+    lyrics = ""
     start = 0
     end = 0
     runtimes = {}
@@ -754,12 +758,14 @@ def from_file(filename):
 
 jobcount = 1
 mp3files = []
+overwrite = False
 
 def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
     global jobcount
     global mp3files
+    global overwrite
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
@@ -767,13 +773,16 @@ def parseargv():
             metavar="N", default=1)
     parser.add_argument("-f", "--force", help="Confirm the use of too many processes",
             action="store_true")
+    parser.add_argument("-o", "--overwrite", help="Overwrite lyrics of songs"
+            " that already have them", action="store_true")
     parser.add_argument("-r", "--recursive", help="Recursively search for"
-            " mp3 files", nargs='?', default='.')
+            " mp3 files", nargs='?', const='.')
     parser.add_argument("--from-file", help="Read a list of files from a text"
             " file", type=str)
     parser.add_argument("files", help="The mp3 files to search lyrics for",
             nargs="*")
     args = parser.parse_args()
+    print(args)
 
     if args.jobs:
         if args.jobs > os.cpu_count() and not args.force:
@@ -788,6 +797,9 @@ def parseargv():
         else:
             jobcount = args.jobs
 
+    if args.overwrite:
+        overwrite = args.overwrite
+
     # Argsparse would not let me create a mutually exclusive group with
     # positional arguments, so I made the checking myself
     if args.files and args.recursive:
@@ -799,7 +811,7 @@ def parseargv():
     if args.files:
         mp3files = args.files
     elif args.recursive:
-        mp3files = glob.glob("**/*.mp3", recursive=True)
+        mp3files = glob.glob(args.recursive+"/**/*.mp3", recursive=True)
     elif args.from_file:
         mp3files = from_file(args.from_file)
         if not mp3files:
@@ -817,6 +829,7 @@ def main():
     ret = parseargv()
     if ret != 0:
         return ret
+    print(overwrite)
 
     logger.debug("Running with "+str(mp3files))
     try:
