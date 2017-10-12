@@ -203,7 +203,11 @@ def metalarchives(mp3file):
         url="https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
         try:
             soup = bs(url)
-            return soup.get_text().strip()
+            text = soup.get_text()
+            if re.search('lyrics not available', text):
+                return ""
+            else:
+                return text.strip()
         except (HTTPError, URLError):
             continue
 
@@ -703,25 +707,25 @@ def run(songs):
     logger.debug("Launching a pool of "+str(jobcount)+" processes")
     chunksize = math.ceil(len(songs)/os.cpu_count())
     try:
-    with Pool(jobcount) as pool:
-        for result in pool.imap_unordered(run_mp, songs, chunksize):
-            if result is None: continue
+        with Pool(jobcount) as pool:
+            for result in pool.imap_unordered(run_mp, songs, chunksize):
+                if result is None: continue
 
-            for source, runtime in result.runtimes.items():
-                stats.add_result(source, result.source == source, runtime)
+                for source, runtime in result.runtimes.items():
+                    stats.add_result(source, result.source == source, runtime)
 
-            if result.source is not None:
+                if result.source is not None:
                     print("Lyrics added for "+result.filename)
                     good.write(f"{id_source(source)}: result.filename\n")
                     good.flush()
-            else:
+                else:
                     print(f"Lyrics for {result.filename} not found")
-                bad.write(result.filename+'\n')
+                    bad.write(result.filename+'\n')
                     bad.flush()
 
     finally:
-    good.close()
-    bad.close()
+        good.close()
+        bad.close()
 
     return stats
 
