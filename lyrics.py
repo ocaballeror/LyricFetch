@@ -729,27 +729,46 @@ def run(songs):
 
     return stats
 
+def from_file(filename):
+    '''Load a list of filenames from an external text file'''
+    if os.path.isdir(filename):
+        logger.error(f"Err: '{filename}' is a directory")
+        return None
+    if not os.path.isfile(filename):
+        logger.error(f"Err: File '{filename}' does not exist")
+        return None
+
+    try:
+        with open(filename, 'r') as sourcefile:
+            mp3files = []
+            for line in sourcefile:
+                if line[-1] == '\n':
+                    mp3files.append(line[0:-1])
+                else:
+                    mp3files.append(line)
+
+        return mp3files
+    except Exception as e:
+        print(e)
+        return None
+
 jobcount = 1
-stats = False
 mp3files = []
 
 def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
     global jobcount
-    global stats
     global mp3files
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
     parser.add_argument("-j", "--jobs", help="Number of parallel processes", type=int,
-            default=1)
+            metavar="N", default=1)
     parser.add_argument("-f", "--force", help="Confirm the use of too many processes",
             action="store_true")
-    parser.add_argument("-s", "--stats", help="Output some stats about the"
-            " execution at the end", action="store_true")
-    parser.add_argument("-r", "--recursive", help="Recursively search for all"
-            " the mp3 files in the current directory", action="store_true")
+    parser.add_argument("-r", "--recursive", help="Recursively search for"
+            " mp3 files", nargs='?', default='.')
     parser.add_argument("--from-file", help="Read a list of files from a text"
             " file", type=str)
     parser.add_argument("files", help="The mp3 files to search lyrics for",
@@ -777,18 +796,15 @@ def parseargv():
                 " allowed with positional arguments")
         return 2
 
-    mp3files = []
     if args.files:
         mp3files = args.files
     elif args.recursive:
         mp3files = glob.glob("**/*.mp3", recursive=True)
     elif args.from_file:
-        with open(args.from_file, 'r') as sourcefile:
-            for line in sourcefile:
-                if line[-1] == '\n':
-                    mp3files.append(line[0:-1])
-                else:
-                    mp3files.append(line)
+        mp3files = from_file(args.from_file)
+        if not mp3files:
+            logger.error('Err: Could not read from file')
+            return 2
     else:
         logger.error("Err: No files specified")
         return 2
