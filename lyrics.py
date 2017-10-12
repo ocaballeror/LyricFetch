@@ -35,7 +35,7 @@ from bs4 import NavigableString, Tag, BeautifulSoup
 from multiprocessing import Pool
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 # Send verbose logs to a log file
 debuglogger = logging.FileHandler('debuglog', 'w')
@@ -673,16 +673,15 @@ def run_mp(filename):
             if lyrics != '':
                 logger.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
 
-                # audiofile.tag.lyrics.set(u''+lyrics)
-                # audiofile.tag.save()
-                # print("Lyrics added for "+filename)
+                audiofile.tag.lyrics.set(u''+lyrics)
+                audiofile.tag.save()
                 return Mp_res(source, filename, runtimes)
             else:
                 logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
 
         except (HTTPError, HTTPException, URLError, ConnectionError) as e:
-            if not hasattr(e, 'code') or e.code != 404:
-                logger.exception(f'== {source.__name__}: {e}\n')
+            # if not hasattr(e, 'code') or e.code != 404:
+            #     logger.exception(f'== {source.__name__}: {e}\n')
 
             logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
 
@@ -707,9 +706,13 @@ def run(songs):
                 stats.add_result(source, result.source == source, runtime)
 
             if result.source is not None:
-                good.write(result.filename+'\n')
+                    print("Lyrics added for "+result.filename)
+                    good.write(f"{id_source(source)}: result.filename\n")
+                    good.flush()
             else:
+                    print(f"Lyrics for {result.filename} not found")
                 bad.write(result.filename+'\n')
+                    bad.flush()
 
 
     good.close()
