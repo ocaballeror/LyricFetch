@@ -658,6 +658,10 @@ def run_mp(filename):
         return None
 
     audiofile = eyed3.load(filename)
+    if not audiofile:
+        logger.warning(f"W: File '{filename}' could not be proccess as an mp3")
+        return None
+
     lyrics = ""
 
     start = 0
@@ -698,6 +702,7 @@ def run(songs):
 
     logger.debug("Launching a pool of "+str(jobcount)+" processes")
     chunksize = math.ceil(len(songs)/os.cpu_count())
+    try:
     with Pool(jobcount) as pool:
         for result in pool.imap_unordered(run_mp, songs, chunksize):
             if result is None: continue
@@ -714,9 +719,10 @@ def run(songs):
                 bad.write(result.filename+'\n')
                     bad.flush()
 
-
+    finally:
     good.close()
     bad.close()
+
     return stats
 
 jobcount = 1
