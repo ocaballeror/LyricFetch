@@ -2,3 +2,12 @@
 tags
 .tags
 *~
+__pycache__
+*.pyc
+
+debuglog
+errlog
+found
+notfound
+notfoundatall
+supernotfound
