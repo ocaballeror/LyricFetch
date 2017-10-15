@@ -689,13 +689,13 @@ def run_mp(filename):
                 audiofile.tag.save()
                 return Mp_res(source, filename, runtimes)
             else:
-                logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
+                logger.info(f'-- {source.__name__}: Could not find lyrics for {filename}\n')
 
         except (HTTPError, HTTPException, URLError, ConnectionError) as e:
             # if not hasattr(e, 'code') or e.code != 404:
             #     logger.exception(f'== {source.__name__}: {e}\n')
 
-            logger.info('-- '+source.__name__+': Could not find lyrics for ' + filename + '\n')
+            logger.info(f'-- {source.__name__}: Could not find lyrics for {filename}\n')
 
         finally:
             end = time.time()
