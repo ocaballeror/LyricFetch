@@ -110,10 +110,10 @@ def metrolyrics(mp3file):
         return ""
 
     text = ""
-    body = body.find_all('p')
-    for verse in body:
-        text += verse.get_text()
-        if verse != body[-1]:
+    verses = body.find_all('p')
+    for verse in verses:
+        text += verse.get_text().strip()
+        if verse != verses[-1]:
             text += '\n\n'
 
     return text.strip()
@@ -151,7 +151,6 @@ def azlyrics(mp3file):
     artist = normalize(artist, urlescapeS, "")
     title = mp3file.tag.title.lower()
     title = normalize(title, urlescapeS, "")
-
 
     url = "https://www.azlyrics.com/lyrics/{}/{}.html".format(artist, title)
     soup = bs(url)
@@ -193,26 +192,24 @@ def metalarchives(mp3file):
     url = "http://www.metal-archives.com/search/ajax-advanced/searching/songs/"
     url += f"?songTitle={title}&bandName={artist}&ExactBandMatch=1"
     soup = bs(url)
-    links = soup.find_all('a')
-    for link in links:
-        song_id = re.search(r'lyricsLink_([0-9]*)', str(link))
+    song_id = ''
+    song_id_re = re.compile(r'lyricsLink_([0-9]*)')
+    for link in soup.find_all('a'):
+        song_id = re.search(song_id_re, str(link))
         if song_id:
             song_id = song_id.group(1)
-        else:
-            continue
+            break
 
-        url="https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
-        try:
-            soup = bs(url)
-            text = soup.get_text()
-            if re.search('lyrics not available', text):
-                return ""
-            else:
-                return text.strip()
-        except (HTTPError, URLError):
-            continue
+    if not song_id:
+        return ""
 
-    return ""
+    url="https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
+    soup = bs(url)
+    text = soup.get_text()
+    if re.search('lyrics not available', text):
+        return ""
+    else:
+        return text.strip()
 
 def lyricswikia(mp3file):
     '''Returns the lyrics found in lyrics.wikia.com for the specified mp3 file or an
@@ -270,8 +267,11 @@ def musixmatch(mp3file):
     url = "https://www.musixmatch.com/lyrics/{}/{}".format(artist, title)
     soup = bs(url)
     text = ""
-    for p in soup.find_all('p', class_='mxm-lyrics__content '):
-        text += p.get_text()
+    contents = soup.find_all('p', class_='mxm-lyrics__content ')
+    for p in contents:
+        text += p.get_text().strip()
+        if p != contents[-1]:
+            text += '\n\n'
 
     return text.strip()
 
@@ -468,33 +468,36 @@ sources = [
     musica
 ]
 
-def id_source(source):
+def id_source(source, full=False):
+    '''Returns the name of a website-scrapping function'''
     if source == azlyrics:
-        return 'AZL'
+        name = "AZLyrics.com" if full else 'AZL'
     elif source == metrolyrics:
-        return 'MET'
+        name = "MetroLyrics.com" if full else 'MET'
     elif source == lyricswikia:
-        return 'WIK'
+        name = "lyrics.wikia.com" if full else 'WIK'
     elif source == darklyrics:
-        return 'DAR'
+        name = "DarkLyrics.com" if full else 'DAR'
     elif source == metalarchives:
-        return 'ARC'
+        name = "Metal-archives.com" if full else 'ARC'
     elif source == genius:
-        return 'GEN'
+        name = "Genius.com" if full else 'GEN'
     elif source == musixmatch:
-        return 'XMA'
+        name = "Musixmatch.com" if full else 'XMA'
     elif source == songlyrics:
-        return 'SON'
+        name = "SongLyrics.com" if full else 'SON'
     elif source == vagalume:
-        return 'VAG'
+        name = "Vagalume.com.br" if full else 'VAG'
     elif source == letras:
-        return 'LET'
+        name = "Letras.com" if full else 'LET'
     elif source == lyricsmode:
-        return 'LYM'
+        name = "Lyricsmode.com" if full else 'LYM'
     elif source == lyricscom:
-        return 'LYC'
+        name = "Lyrics.com" if full else 'LYC'
     elif source == musica:
-        return 'MUS'
+        name = "Musica.com" if full else'MUS'
+    else:
+        name = ''
 
 
 def avg(values):
