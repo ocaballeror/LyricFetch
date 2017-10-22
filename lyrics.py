@@ -753,7 +753,7 @@ def run(songs):
     return stats
 
 def from_file(filename):
-    '''Load a list of filenames from an external text file'''
+    '''Load a set of filenames from an external text file'''
     if os.path.isdir(filename):
         logger.error(f"Err: '{filename}' is a directory")
         return None
@@ -763,12 +763,12 @@ def from_file(filename):
 
     try:
         with open(filename, 'r') as sourcefile:
-            mp3files = []
+            mp3files = set()
             for line in sourcefile:
                 if line[-1] == '\n':
-                    mp3files.append(line[0:-1])
+                    mp3files.add(line[0:-1])
                 else:
-                    mp3files.append(line)
+                    mp3files.add(line)
 
         return mp3files
     except Exception as e:
@@ -776,7 +776,7 @@ def from_file(filename):
         return None
 
 jobcount = 1
-mp3files = []
+mp3files = set()
 overwrite = False
 
 def parseargv():
@@ -829,18 +829,11 @@ def parseargv():
     if args.overwrite:
         overwrite = args.overwrite
 
-    # Argsparse would not let me create a mutually exclusive group with
-    # positional arguments, so I made the checking myself
-    if args.files and args.recursive:
-        parser.print_usage(sys.stderr)
-        logger.error(f"{sys.argv[0]}: error: argument -r/--recursive: not"
-                " allowed with positional arguments")
-        return 2
 
     if args.files:
-        mp3files = args.files
+        mp3files |= set(args.files)
     elif args.recursive:
-        mp3files = glob.glob(args.recursive+"/**/*.mp3", recursive=True)
+        mp3files |= set(glob.iglob(args.recursive+"/**/*.mp3", recursive=True))
     elif args.from_file:
         mp3files = from_file(args.from_file)
         if not mp3files:
