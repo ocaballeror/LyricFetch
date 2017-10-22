@@ -27,7 +27,8 @@ import argparse
 import glob
 import eyed3
 import logging
-import urllib.request as urllib
+import ssl
+import urllib.request as request
 
 from urllib.error import *
 from http.client import HTTPException
@@ -53,10 +54,21 @@ logging.getLogger("eyed3.mp3.headers").setLevel(logging.CRITICAL)
 def bs(url, safe=":/"):
     '''Requests the specified url and returns a BeautifulSoup object with its
     contents'''
-    url = urllib.quote(url,safe=safe)
+    url = request.quote(url,safe=safe)
     logger.debug('URL: '+url)
-    req = urllib.Request(url, headers={"User-Agent": "foobar"})
-    response = urllib.urlopen(req)
+    req = request.Request(url, headers={"User-Agent": "foobar"})
+    try:
+        response = request.urlopen(req)
+    except (ssl.SSLError, URLError) as e:
+        # Some websites (like metal-archives) use older TLS versions and can
+        # make the ssl module trow a VERSION_TOO_LOW error. Here we try to use
+        # the older TLSv1 to see if we can fix that
+        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        response = request.urlopen(req, context=context)
+    except Exception as e:
+        logger.exception(e)
+        raise e
+
     return BeautifulSoup(response.read(), 'html.parser')
 
 # Contains the characters usually removed or replaced in URLS
@@ -189,9 +201,10 @@ def metalarchives(mp3file):
     title = mp3file.tag.title.capitalize()
     title = normalize(title, ' ', '_')
 
-    url = "http://www.metal-archives.com/search/ajax-advanced/searching/songs/"
-    url += f"?songTitle={title}&bandName={artist}&ExactBandMatch=1"
-    soup = bs(url)
+    url = "https://www.metal-archives.com/search/ajax-advanced/searching/songs/"
+    url += f"?songTitle={title}&bandName={artist}&exactBandMatch=1"
+    soup = bs(url, safe=':/?=&')
+
     song_id = ''
     song_id_re = re.compile(r'lyricsLink_([0-9]*)')
     for link in soup.find_all('a'):
