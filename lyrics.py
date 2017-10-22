@@ -36,7 +36,7 @@ from bs4 import NavigableString, Tag, BeautifulSoup
 from multiprocessing import Pool
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 # Send verbose logs to a log file
 debuglogger = logging.FileHandler('debuglog', 'w')
@@ -643,7 +643,9 @@ class Stats:
     Slowest website to scrape: {slowest[0].capitalize()} (Avg: {slowest[1]:.2f}s per search)
     Average time per website: {self.avg_time():.2f}s
 
-    PER WEBSITE STATS:
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxx    PER WEBSITE STATS:      xxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     """
         for source in sources:
             s = str(self.source_stats[source.__name__])
@@ -742,6 +744,7 @@ def run(songs):
                     print(f"Lyrics for {result.filename} not found")
                     bad.write(result.filename+'\n')
                     bad.flush()
+            print('')
 
     finally:
         good.close()
@@ -782,6 +785,7 @@ def parseargv():
     global jobcount
     global mp3files
     global overwrite
+    global logger
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
@@ -793,12 +797,20 @@ def parseargv():
             " that already have them", action="store_true")
     parser.add_argument("-r", "--recursive", help="Recursively search for"
             " mp3 files", nargs='?', const='.')
+    parser.add_argument("-v", "--verbose", help="Set verbosity level (pass it"
+            " up to three times)", action="count")
     parser.add_argument("--from-file", help="Read a list of files from a text"
             " file", type=str)
     parser.add_argument("files", help="The mp3 files to search lyrics for",
             nargs="*")
     args = parser.parse_args()
-    print(args)
+
+    if args.verbose is None or args.verbose == 0:
+        logger.setLevel(logging.CRITICAL)
+    elif args.verbose == 1:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.DEBUG)
 
     if args.jobs:
         if args.jobs > os.cpu_count() and not args.force:
@@ -812,6 +824,7 @@ def parseargv():
             return 1
         else:
             jobcount = args.jobs
+
 
     if args.overwrite:
         overwrite = args.overwrite
@@ -845,7 +858,6 @@ def main():
     ret = parseargv()
     if ret != 0:
         return ret
-    print(overwrite)
 
     logger.debug("Running with "+str(mp3files))
     try:
