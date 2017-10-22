@@ -65,9 +65,6 @@ def bs(url, safe=":/"):
         # the older TLSv1 to see if we can fix that
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         response = request.urlopen(req, context=context)
-    except Exception as e:
-        logger.exception(e)
-        raise e
 
     return BeautifulSoup(response.read(), 'html.parser')
 
@@ -710,9 +707,7 @@ def run_mp(filename):
                 logger.info(f'-- {source.__name__}: Could not find lyrics for {filename}\n')
 
         except (HTTPError, HTTPException, URLError, ConnectionError) as e:
-            # if not hasattr(e, 'code') or e.code != 404:
-            #     logger.exception(f'== {source.__name__}: {e}\n')
-
+            logger.exception(f'== {source.__name__}: {e}\n')
             logger.info(f'-- {source.__name__}: Could not find lyrics for {filename}\n')
 
         finally:
@@ -771,8 +766,8 @@ def from_file(filename):
                     mp3files.add(line)
 
         return mp3files
-    except Exception as e:
-        print(e)
+    except IOError as e:
+        logger.exception(e)
         return None
 
 jobcount = 1
