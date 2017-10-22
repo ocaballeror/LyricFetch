@@ -11,3 +11,6 @@ found
 notfound
 notfoundatall
 supernotfound
+
+test*.py
+*@neomake*
