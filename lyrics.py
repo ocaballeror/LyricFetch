@@ -55,7 +55,7 @@ def bs(url, safe=":/"):
     '''Requests the specified url and returns a BeautifulSoup object with its
     contents'''
     url = request.quote(url,safe=safe)
-    logger.debug('URL: '+url)
+    logger.debug('URL: %s', url)
     req = request.Request(url, headers={"User-Agent": "foobar"})
     try:
         response = request.urlopen(req)
@@ -71,7 +71,7 @@ def bs(url, safe=":/"):
 # Contains the characters usually removed or replaced in URLS
 urlescape = ".¿?%_@,;&\\/()'\"-!¡"
 urlescapeS = ' '+urlescape
-def normalize(string, charsToRemove=None, replacement=''):
+def normalize(string, chars_to_remove=None, replacement=''):
     """Remove accented characters and such.
     The argument charsToRemove is a dictionary that maps a string of chars
     to a single character. Every ocurrence of every character in the first
@@ -90,13 +90,13 @@ def normalize(string, charsToRemove=None, replacement=''):
         'ñ': 'n'
     }))
 
-    if isinstance(charsToRemove, dict):
-        for chars,replace in charsToRemove.items():
+    if isinstance(chars_to_remove, dict):
+        for chars,replace in chars_to_remove.items():
             reg = "["+re.escape(chars)+"]"
             ret = re.sub(reg, replace, ret)
 
-    elif isinstance(charsToRemove, str):
-        reg = '['+re.escape(charsToRemove)+']'
+    elif isinstance(chars_to_remove, str):
+        reg = '['+re.escape(chars_to_remove)+']'
         ret = re.sub(reg, replacement, ret)
 
     return ret
@@ -509,6 +509,7 @@ def id_source(source, full=False):
     else:
         name = ''
 
+    return name
 
 def avg(values):
     """Returns the average of a list of numbers"""
