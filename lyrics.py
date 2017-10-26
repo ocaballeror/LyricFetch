@@ -190,7 +190,7 @@ def genius(song):
 
     return ''
 
-def metalarchives(mp3file):
+def metalarchives(song):
     '''Returns the lyrics found in MetalArchives for the specified mp3 file or an
     empty string if not found'''
     artist = song.artist.capitalize()
@@ -221,7 +221,7 @@ def metalarchives(mp3file):
     else:
         return text.strip()
 
-def lyricswikia(mp3file):
+def lyricswikia(song):
     '''Returns the lyrics found in lyrics.wikia.com for the specified mp3 file or an
     empty string if not found'''
     artist = song.artist.title()
@@ -254,7 +254,7 @@ def lyricswikia(mp3file):
             text += str(line).replace('<br/>', '\n')
     return text.strip()
 
-def musixmatch(mp3file):
+def musixmatch(song):
     '''Returns the lyrics found in musixmatch for the specified mp3 file or an
     empty string if not found'''
     escape = re.sub("'-¡¿", '', urlescape)
@@ -287,7 +287,7 @@ def musixmatch(mp3file):
 
 # Songlyrics is basically a mirror for musixmatch, so it helps us getting
 # around musixmatch's bot detection (they block IPs pretty easily)
-def songlyrics(mp3file):
+def songlyrics(song):
     '''Returns the lyrics found in songlyrics.com for the specified mp3 file or
     an empty string if not found'''
     translate = {
@@ -310,7 +310,7 @@ def songlyrics(mp3file):
 
     return text.getText().strip()
 
-def lyricscom(mp3file):
+def lyricscom(song):
     '''Returns the lyrics found in lyrics.com for the specified mp3 file or an
     empty string if not found'''
     artist = song.artist.lower()
@@ -335,7 +335,7 @@ def lyricscom(mp3file):
 
     return body.get_text().strip()
 
-def vagalume(mp3file):
+def vagalume(song):
     '''Returns the lyrics found in vagalume.com.br for the specified mp3 file or an
     empty string if not found'''
     translate = {
@@ -362,7 +362,7 @@ def vagalume(mp3file):
 
     return content.get_text().strip()
 
-def lyricsmode(mp3file):
+def lyricsmode(song):
     '''Returns the lyrics found in lyricsmode.com for the specified mp3 file or an
     empty string if not found'''
     translate = {
@@ -392,7 +392,7 @@ def lyricsmode(mp3file):
 
     return content.get_text().strip()
 
-def letras(mp3file):
+def letras(song):
     '''Returns the lyrics found in letras.com for the specified mp3 file or an
     empty string if not found'''
     translate = {
@@ -420,7 +420,7 @@ def letras(mp3file):
 
     return text.strip()
 
-def musica(mp3file):
+def musica(song):
     '''Returns the lyrics found in musica.com for the specified mp3 file or an
     empty string if not found'''
     safe = "?=:/"
@@ -607,7 +607,6 @@ class Stats:
         slowest = None
         sr = None
         found = 0
-        notfound = 0
         total_time = 0
         for source,rec in self.source_stats.items():
             if best is None or rec.successes > best[1]:
@@ -622,13 +621,17 @@ class Stats:
                 slowest = (source, avg)
 
             found += rec.successes
-            notfound += rec.fails
             total_time += sum(rec.runtimes)
 
         # best_source = max([rec.successes for rec in self.source_stats.values()])
         # fastest_source = min([self.avg_time(source) for source in sources])
         # found = sum([rec.successes for rec in self.source_stats.values()])
         # total_time = sum([sum(rec.runtimes) for rec in self.source_stats.values()])
+
+        # The songs which lyrics were not found, will be the number of fails
+        # for the last source in the list
+        notfound = self.source_stats[sources[-1].__name__].fails
+
         total_time = "%d:%02d:%02d" % (total_time/3600,(total_time/3600)/60,(total_time%3600)%60)
         string = f"""Total runtime: {total_time}
     Lyrics found: {found}
@@ -667,7 +670,7 @@ class Song:
             return ""
 
     @classmethod
-    def from_filename(self, filename):
+    def from_filename(cls, filename):
         if not os.path.exists(filename):
             logger.error(f"Err: File '{filename}' not found")
             return None
@@ -732,9 +735,7 @@ def run(song):
 
             if lyrics != '':
                 logger.info(f'++ {source.__name__}: Found lyrics for {song}\n')
-
-                audiofile.tag.lyrics.set(u''+lyrics)
-                audiofile.tag.save()
+                song.lyrics = lyrics
                 return Result(song, source, runtimes)
             else:
                 logger.info(f'-- {source.__name__}: Could not find lyrics for {song}\n')
@@ -758,7 +759,7 @@ def run_mp(songs):
     chunksize = math.ceil(len(songs)/os.cpu_count())
     try:
         with Pool(jobcount) as pool:
-            for result in pool.imap_unordered(run_mp, songs, chunksize):
+            for result in pool.imap_unordered(run, songs, chunksize):
                 if result is None: continue
 
                 for source, runtime in result.runtimes.items():
@@ -767,6 +768,9 @@ def run_mp(songs):
                 if result.source is not None:
                     print("Lyrics added for "+str(result.song))
                     good.write(f"{id_source(source)}: {result.song}\n")
+                    audiofile = eyed3.load(result.song.filename)
+                    audiofile.tag.lyrics.set(u''+result.song.lyrics)
+                    audiofile.tag.save()
                     good.flush()
                 else:
                     print(f"Lyrics for {result.song} not found")
@@ -825,7 +829,7 @@ def parseargv():
     parser.add_argument("-r", "--recursive", help="Recursively search for"
             " mp3 files", nargs='?', const='.')
     parser.add_argument("-n", "--by-name", help="A list of song names in"
-            " 'artist - title' format", nargs='*', const=[])
+            " 'artist - title' format", nargs='*') 
     parser.add_argument("-v", "--verbose", help="Set verbosity level (pass it"
             " up to three times)", action="count")
     parser.add_argument("--from-file", help="Read a list of files from a text"
@@ -846,12 +850,12 @@ def parseargv():
             logger.error("You specified a number of parallel threads"
             " greater than the number of processors in your system. To continue"
             " at your own risk you must confirm you choice with -f")
-            errno = errno.EINVAL
+            errno = os.errno.EINVAL
             return None
         elif args.jobs <= 0:
             logger.error(f"{sys.argv[0]}: error: argument -j/--jobs should"
             " have a value greater than zero")
-            errno = errno.EINVAL
+            errno = os.errno.EINVAL
             return None
         else:
             jobcount = args.jobs
@@ -884,7 +888,7 @@ def parseargv():
             errno = os.errno.EINVAL
             return None
 
-        songs = set([Song.from_file(f) for f in mp3files])
+        songs = set([Song.from_filename(f) for f in mp3files])
     else:
         for song in args.by_name:
             recv = [ t.strip() for t in args.split("-") ]
@@ -902,11 +906,13 @@ def main():
     songs = parseargv()
     if not songs:
         return errno
+    else:
+        print(songs)
 
     logger.debug("Running with "+str(songs))
     try:
         start = time.time()
-        stats = run(songs)
+        stats = run_mp(songs)
         end = time.time()
         stats.print_stats()
         total_time = end-start
