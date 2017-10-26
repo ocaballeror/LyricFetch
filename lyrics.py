@@ -697,6 +697,7 @@ class Song:
         song.artist = artist
         song.title = title
         song.album = album
+        song.lyrics = ""
 
         return song
 
@@ -713,13 +714,13 @@ class Result:
         # the website. Keys corresponding to unused sources will be missing
         self.runtimes = runtimes
 
-def run(song):
+def get_lyrics(song):
     """Searches for lyrics of a single song and returns an mp_res object with
     the various stats collected in the process. It is intended to be an
     auxiliary function to run, which will invoke it as a parallel process"""
 
     if song.lyrics and not overwrite:
-        logger.debug(f"{song} already has embedded lyrics")
+        logger.debug(f"'{song}' already has embedded lyrics")
         return None
 
     lyrics = ""
@@ -751,6 +752,8 @@ def run(song):
     return Result(song, None, runtimes)
 
 def run_mp(songs):
+    '''Concurrently calls get_lyrics to fetch the lyrics of a large list of
+    songs'''
     stats = Stats()
     good = open('found', 'w')
     bad  = open('notfound', 'w')
@@ -759,19 +762,27 @@ def run_mp(songs):
     chunksize = math.ceil(len(songs)/os.cpu_count())
     try:
         with Pool(jobcount) as pool:
-            for result in pool.imap_unordered(run, songs, chunksize):
+            for result in pool.imap_unordered(get_lyrics, songs, chunksize):
                 if result is None: continue
 
                 for source, runtime in result.runtimes.items():
                     stats.add_result(source, result.source == source, runtime)
 
                 if result.source is not None:
-                    print("Lyrics added for "+str(result.song))
                     good.write(f"{id_source(source)}: {result.song}\n")
-                    audiofile = eyed3.load(result.song.filename)
-                    audiofile.tag.lyrics.set(u''+result.song.lyrics)
-                    audiofile.tag.save()
                     good.flush()
+
+                    if hasattr(result.song, 'filename'):
+                        audiofile = eyed3.load(result.song.filename)
+                        audiofile.tag.lyrics.set(u''+result.song.lyrics)
+                        audiofile.tag.save()
+                        print("Lyrics added for "+str(result.song))
+                    else:
+                        print(f'''FROM {id_source(result.source, full=True)}
+
+{result.song.lyrics}
+-----------------------------------------------------------------------------\
+''')
                 else:
                     print(f"Lyrics for {result.song} not found")
                     bad.write(result.song+'\n')
@@ -829,7 +840,7 @@ def parseargv():
     parser.add_argument("-r", "--recursive", help="Recursively search for"
             " mp3 files", nargs='?', const='.')
     parser.add_argument("-n", "--by-name", help="A list of song names in"
-            " 'artist - title' format", nargs='*') 
+            " 'artist - title' format", nargs='*')
     parser.add_argument("-v", "--verbose", help="Set verbosity level (pass it"
             " up to three times)", action="count")
     parser.add_argument("--from-file", help="Read a list of files from a text"
@@ -878,7 +889,7 @@ def parseargv():
                 return None
 
             mp3files = load_from_file(args.from_file)
-            if not songs:
+            if not mp3files:
                 logger.error('Err: Could not read from file')
                 errno = os.errno.EIO
                 return None
@@ -891,20 +902,21 @@ def parseargv():
         songs = set([Song.from_filename(f) for f in mp3files])
     else:
         for song in args.by_name:
-            recv = [ t.strip() for t in args.split("-") ]
-            if len(recv) != 2:
+            recv = [ t.strip() for t in song.split("-") ]
+            if len(recv) < 2:
                 sys.stderr.write('Wrong format!\n')
                 return None
 
             artist = recv[0]
-            title = recv[1:]
-            songs.add(artist, title)
+            title = ''.join(recv[1:])
+            songs.add(Song.from_info(artist, title))
 
     return songs
 
 def main():
     songs = parseargv()
     if not songs:
+        print (os.strerror(errno))
         return errno
     else:
         print(songs)
@@ -912,7 +924,7 @@ def main():
     logger.debug("Running with "+str(songs))
     try:
         start = time.time()
-        stats = run_mp(songs)
+        stats = run(songs)
         end = time.time()
         stats.print_stats()
         total_time = end-start
