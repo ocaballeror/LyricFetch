@@ -101,14 +101,14 @@ def normalize(string, chars_to_remove=None, replacement=''):
 
     return ret
 
-def metrolyrics(mp3file):
+def metrolyrics(song):
     '''Returns the lyrics found in metrolyrics for the specified mp3 file or an
     empty string if not found'''
     translate = {urlescape: "", " ":"-"}
-    title = mp3file.tag.title.lower()
+    title = song.title.lower()
     title = normalize(title, translate)
     title = re.sub(r'\-{2,}', '-', title)
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     artist = normalize(artist, translate)
     artist = re.sub(r'\-{2,}', '-', artist)
 
@@ -127,14 +127,14 @@ def metrolyrics(mp3file):
 
     return text.strip()
 
-def darklyrics(mp3file):
+def darklyrics(song):
     '''Returns the lyrics found in darklyrics for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     artist = normalize(artist, urlescapeS, '')
-    album = mp3file.tag.album.lower()
+    album = song.album.lower()
     album = normalize(album, urlescapeS, '')
-    title = mp3file.tag.title
+    title = song.title
 
     url = "http://www.darklyrics.com/lyrics/{}/{}.html".format(artist, album)
     soup = bs(url)
@@ -151,14 +151,14 @@ def darklyrics(mp3file):
 
     return text.strip()
 
-def azlyrics(mp3file):
+def azlyrics(song):
     '''Returns the lyrics found in azlyrics for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     if artist[0:2] == "a ":
         artist = artist[2:]
     artist = normalize(artist, urlescapeS, "")
-    title = mp3file.tag.title.lower()
+    title = song.title.lower()
     title = normalize(title, urlescapeS, "")
 
     url = "https://www.azlyrics.com/lyrics/{}/{}.html".format(artist, title)
@@ -166,7 +166,7 @@ def azlyrics(mp3file):
     body = soup.find_all('div', class_="")[-1]
     return body.get_text().strip()
 
-def genius(mp3file):
+def genius(song):
     '''Returns the lyrics found in genius.com for the specified mp3 file or an
     empty string if not found'''
     translate = {
@@ -175,9 +175,9 @@ def genius(mp3file):
         urlescape: '',
         ' ': '-'
     }
-    artist = mp3file.tag.album_artist.capitalize()
+    artist = song.artist.capitalize()
     artist = normalize(artist, translate)
-    title = mp3file.tag.title.capitalize()
+    title = song.title.capitalize()
     title = normalize(title, translate)
 
     url = "https://www.genius.com/{}-{}-lyrics".format(artist, title)
@@ -193,9 +193,9 @@ def genius(mp3file):
 def metalarchives(mp3file):
     '''Returns the lyrics found in MetalArchives for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.album_artist.capitalize()
+    artist = song.artist.capitalize()
     artist = normalize(artist, ' ', '_')
-    title = mp3file.tag.title.capitalize()
+    title = song.title.capitalize()
     title = normalize(title, ' ', '_')
 
     url = "https://www.metal-archives.com/search/ajax-advanced/searching/songs/"
@@ -224,9 +224,9 @@ def metalarchives(mp3file):
 def lyricswikia(mp3file):
     '''Returns the lyrics found in lyrics.wikia.com for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.album_artist.title()
+    artist = song.artist.title()
     artist = normalize(artist, ' ', '_')
-    title = mp3file.tag.title
+    title = song.title
     title = normalize(title, ' ', '_')
 
     url = "https://lyrics.wikia.com/wiki/{}:{}".format(artist, title)
@@ -262,10 +262,10 @@ def musixmatch(mp3file):
         escape: "",
         " ": "-"
     }
-    artist = mp3file.tag.album_artist.title()
+    artist = song.artist.title()
     artist = re.sub(r"( '|' )", "", artist)
     artist = re.sub(r"'", "-", artist)
-    title = mp3file.tag.title
+    title = song.title
     title = re.sub(r"( '|' )", "", title)
     title = re.sub(r"'", "-", title)
 
@@ -294,9 +294,9 @@ def songlyrics(mp3file):
         urlescape: "",
         " ": "-"
     }
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     artist = normalize(artist, translate)
-    title = mp3file.tag.title.lower()
+    title = song.title.lower()
     title = normalize(title, translate)
 
     artist = re.sub(r'\-{2,}', '-', artist)
@@ -313,9 +313,9 @@ def songlyrics(mp3file):
 def lyricscom(mp3file):
     '''Returns the lyrics found in lyrics.com for the specified mp3 file or an
     empty string if not found'''
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     artist = normalize(artist, " ", "+")
-    title = mp3file.tag.title
+    title = song.title
 
     url = "https://www.lyrics.com/artist/{}".format(artist)
     soup = bs(url)
@@ -343,10 +343,10 @@ def vagalume(mp3file):
         urlescape: '',
         ' ': '-'
     }
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     artist = normalize(artist, translate)
     artist = re.sub(r'\-{2,}', '-', artist)
-    title = mp3file.tag.title.lower()
+    title = song.title.lower()
     title = normalize(title, translate)
     title = re.sub(r'\-{2,}', '-', title)
 
@@ -369,9 +369,9 @@ def lyricsmode(mp3file):
         urlescape: "",
         " ": "_"
     }
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     artist = normalize(artist, translate)
-    title = mp3file.tag.title.lower()
+    title = song.title.lower()
     title = normalize(title, translate)
 
     artist = re.sub(r'\_{2,}', '_', artist)
@@ -400,9 +400,9 @@ def letras(mp3file):
         urlescape: "",
         " ": "-"
     }
-    artist = mp3file.tag.album_artist.lower()
+    artist = song.artist.lower()
     artist = normalize(artist, translate)
-    title = mp3file.tag.title.lower()
+    title = song.title.lower()
     title = normalize(title, translate)
 
     url = "https://www.letras.com/{}/{}/".format(artist, title)
@@ -424,9 +424,9 @@ def musica(mp3file):
     '''Returns the lyrics found in musica.com for the specified mp3 file or an
     empty string if not found'''
     safe = "?=:/"
-    artist = mp3file.tag.album_artist.title()
+    artist = song.artist.title()
     artist = normalize(artist)
-    title = mp3file.tag.title.title()
+    title = song.title.title()
     title = normalize(title.lower())
 
     url = "https://www.musica.com/letras.asp?t2="+artist
@@ -622,6 +622,7 @@ class Stats:
                 slowest = (source, avg)
 
             found += rec.successes
+            notfound += rec.fails
             total_time += sum(rec.runtimes)
 
         # best_source = max([rec.successes for rec in self.source_stats.values()])
@@ -629,7 +630,6 @@ class Stats:
         # found = sum([rec.successes for rec in self.source_stats.values()])
         # total_time = sum([sum(rec.runtimes) for rec in self.source_stats.values()])
         total_time = "%d:%02d:%02d" % (total_time/3600,(total_time/3600)/60,(total_time%3600)%60)
-        notfound = len(mp3files) - found
         string = f"""Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
@@ -651,40 +651,72 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
         print(string)
 
-class Mp_res:
-    """Contains the results generated from run_mp, so they can be returned as a
+class Song:
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        if self.artist and self.title and not hasattr(self, 'filename'):
+            return f"{self.artist} - {self.title}"
+        elif self.filename:
+            return self.filename
+        else:
+            return ""
+
+    @classmethod
+    def from_filename(self, filename):
+        if not os.path.exists(filename):
+            logger.error(f"Err: File '{filename}' not found")
+            return None
+
+        if os.path.isdir(filename):
+            logger.error(f"Err: File '{filename}' is a directory")
+            return None
+
+        tags = eyed3.load(filename).tag
+        song = cls.__new__(cls)
+        song.filename = filename
+        song.title = tags.title
+        song.album = tags.album
+        song.lyrics = ''.join([l.text for l in tags.lyrics])
+        song.artist = tags.album_artist
+        if not song.artist:
+            song.artist = tags.artist
+
+        return song
+
+    @classmethod
+    def from_info(cls, artist, title, album=""):
+        song = cls.__new__(cls)
+        song.artist = artist
+        song.title = title
+        song.album = album
+
+        return song
+
+class Result:
+    """Contains the results generated from run, so they can be returned as a
     single variable"""
-    def __init__(self, source=None, filename="", runtimes={}):
+    def __init__(self, song, source=None, runtimes={}):
+        self.song = song
 
         # The source where the lyrics were found (or None if they weren't)
         self.source = source
-
-        # The name of the file whose lyrics we were looking for
-        self.filename = filename
 
         # A dictionary that maps every source to the time taken to scrape
         # the website. Keys corresponding to unused sources will be missing
         self.runtimes = runtimes
 
-def run_mp(filename):
+def run(song):
     """Searches for lyrics of a single song and returns an mp_res object with
     the various stats collected in the process. It is intended to be an
     auxiliary function to run, which will invoke it as a parallel process"""
-    logger.info(filename)
-    if not os.path.exists(filename):
-        logger.error(f"Err: File '{filename}' not found")
-        return None
-    if os.path.isdir(filename):
-        logger.error(f"Err: File '{filename}' is a directory")
-        return None
 
-    audiofile = eyed3.load(filename)
-    if not audiofile:
-        logger.warning(f"W: File '{filename}' could not be proccess as an mp3")
-        return None
-
-    if ''.join([l.text for l in audiofile.tag.lyrics]) and not overwrite:
-        logger.debug(f"{filename} already has embedded lyrics")
+    if song.lyrics and not overwrite:
+        logger.debug(f"{song} already has embedded lyrics")
         return None
 
     lyrics = ""
@@ -694,35 +726,35 @@ def run_mp(filename):
     for source in sources:
         try:
             start = time.time()
-            lyrics = source(audiofile)
+            lyrics = source(song)
             end = time.time()
             runtimes[source] = end-start
 
             if lyrics != '':
-                logger.info(f'++ {source.__name__}: Found lyrics for {filename}\n')
+                logger.info(f'++ {source.__name__}: Found lyrics for {song}\n')
 
                 audiofile.tag.lyrics.set(u''+lyrics)
                 audiofile.tag.save()
-                return Mp_res(source, filename, runtimes)
+                return Result(song, source, runtimes)
             else:
-                logger.info(f'-- {source.__name__}: Could not find lyrics for {filename}\n')
+                logger.info(f'-- {source.__name__}: Could not find lyrics for {song}\n')
 
         except (HTTPError, HTTPException, URLError, ConnectionError) as e:
             logger.exception(f'== {source.__name__}: {e}\n')
-            logger.info(f'-- {source.__name__}: Could not find lyrics for {filename}\n')
+            logger.info(f'-- {source.__name__}: Could not find lyrics for {song}\n')
 
         finally:
             end = time.time()
             runtimes[source] = end-start
 
-    return Mp_res(None, filename, runtimes)
+    return Result(song, None, runtimes)
 
-def run(songs):
+def run_mp(songs):
     stats = Stats()
     good = open('found', 'w')
     bad  = open('notfound', 'w')
 
-    logger.debug("Launching a pool of "+str(jobcount)+" processes")
+    logger.debug(f"Launching a pool of {jobcount} processes")
     chunksize = math.ceil(len(songs)/os.cpu_count())
     try:
         with Pool(jobcount) as pool:
@@ -733,14 +765,13 @@ def run(songs):
                     stats.add_result(source, result.source == source, runtime)
 
                 if result.source is not None:
-                    print("Lyrics added for "+result.filename)
-                    good.write(f"{id_source(source)}: result.filename\n")
+                    print("Lyrics added for "+str(result.song))
+                    good.write(f"{id_source(source)}: {result.song}\n")
                     good.flush()
                 else:
-                    print(f"Lyrics for {result.filename} not found")
-                    bad.write(result.filename+'\n')
+                    print(f"Lyrics for {result.song} not found")
+                    bad.write(result.song+'\n')
                     bad.flush()
-            print('')
 
     finally:
         good.close()
@@ -748,8 +779,8 @@ def run(songs):
 
     return stats
 
-def from_file(filename):
-    '''Load a set of filenames from an external text file'''
+def load_from_file(filename):
+    '''Load a list of filenames from an external text file'''
     if os.path.isdir(filename):
         logger.error(f"Err: '{filename}' is a directory")
         return None
@@ -759,29 +790,29 @@ def from_file(filename):
 
     try:
         with open(filename, 'r') as sourcefile:
-            mp3files = set()
+            songs = []
             for line in sourcefile:
                 if line[-1] == '\n':
-                    mp3files.add(line[0:-1])
+                    songs.append(line[0:-1])
                 else:
-                    mp3files.add(line)
+                    songs.append(line)
 
-        return mp3files
+        return songs
     except IOError as e:
         logger.exception(e)
         return None
 
 jobcount = 1
-mp3files = set()
 overwrite = False
+errno = 0
 
 def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
     global jobcount
-    global mp3files
     global overwrite
     global logger
+    global errno
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
@@ -793,6 +824,8 @@ def parseargv():
             " that already have them", action="store_true")
     parser.add_argument("-r", "--recursive", help="Recursively search for"
             " mp3 files", nargs='?', const='.')
+    parser.add_argument("-n", "--by-name", help="A list of song names in"
+            " 'artist - title' format", nargs='*', const=[])
     parser.add_argument("-v", "--verbose", help="Set verbosity level (pass it"
             " up to three times)", action="count")
     parser.add_argument("--from-file", help="Read a list of files from a text"
@@ -813,11 +846,13 @@ def parseargv():
             logger.error("You specified a number of parallel threads"
             " greater than the number of processors in your system. To continue"
             " at your own risk you must confirm you choice with -f")
-            return 1
+            errno = errno.EINVAL
+            return None
         elif args.jobs <= 0:
             logger.error(f"{sys.argv[0]}: error: argument -j/--jobs should"
             " have a value greater than zero")
-            return 1
+            errno = errno.EINVAL
+            return None
         else:
             jobcount = args.jobs
 
@@ -826,32 +861,52 @@ def parseargv():
         overwrite = args.overwrite
 
 
-    if args.files:
-        mp3files |= set(args.files)
-    elif args.recursive:
-        mp3files |= set(glob.iglob(args.recursive+"/**/*.mp3", recursive=True))
-    elif args.from_file:
-        mp3files = from_file(args.from_file)
-        if not mp3files:
-            logger.error('Err: Could not read from file')
-            return 2
+    songs = set()
+    if not args.by_name:
+        mp3files = []
+        if args.files:
+            mp3files = args.files
+        elif args.recursive:
+            mp3files = glob.iglob(args.recursive+"/**/*.mp3", recursive=True)
+        elif args.from_file:
+            if not os.path.isfile(args.from_file):
+                errno = os.errno.ENOENT
+                return None
+
+            mp3files = load_from_file(args.from_file)
+            if not songs:
+                logger.error('Err: Could not read from file')
+                errno = os.errno.EIO
+                return None
+
+        else:
+            logger.error("Err: No files specified")
+            errno = os.errno.EINVAL
+            return None
+
+        songs = set([Song.from_file(f) for f in mp3files])
     else:
-        logger.error("Err: No files specified")
-        return 2
+        for song in args.by_name:
+            recv = [ t.strip() for t in args.split("-") ]
+            if len(recv) != 2:
+                sys.stderr.write('Wrong format!\n')
+                return None
 
-    return 0
+            artist = recv[0]
+            title = recv[1:]
+            songs.add(artist, title)
 
-# Yes I know this is not the most pythonic way to do things, but it helps me
-# organize my code.
+    return songs
+
 def main():
-    ret = parseargv()
-    if ret != 0:
-        return ret
+    songs = parseargv()
+    if not songs:
+        return errno
 
-    logger.debug("Running with "+str(mp3files))
+    logger.debug("Running with "+str(songs))
     try:
         start = time.time()
-        stats = run(mp3files)
+        stats = run(songs)
         end = time.time()
         stats.print_stats()
         total_time = end-start
