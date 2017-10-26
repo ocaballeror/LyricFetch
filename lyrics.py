@@ -701,6 +701,21 @@ class Song:
 
         return song
 
+    @classmethod
+    def from_string(cls, name, separator='-'):
+        """Parse attributes from a string formatted as 'artist - title'"""
+        song = cls.__new__(cls)
+        recv = [ t.strip() for t in name.split(separator) ]
+        if len(recv) < 2:
+            sys.stderr.write('Wrong format!\n')
+            return None
+
+        song.artist = recv[0]
+        song.title = ''.join(recv[1:])
+        song.lyrics = ''
+
+        return song
+
 class Result:
     """Contains the results generated from run, so they can be returned as a
     single variable"""
@@ -902,14 +917,7 @@ def parseargv():
         songs = set([Song.from_filename(f) for f in mp3files])
     else:
         for song in args.by_name:
-            recv = [ t.strip() for t in song.split("-") ]
-            if len(recv) < 2:
-                sys.stderr.write('Wrong format!\n')
-                return None
-
-            artist = recv[0]
-            title = ''.join(recv[1:])
-            songs.add(Song.from_info(artist, title))
+            songs.add(Song.from_string(song))
 
     return songs
 
@@ -924,7 +932,7 @@ def main():
     logger.debug("Running with "+str(songs))
     try:
         start = time.time()
-        stats = run(songs)
+        stats = run_mp(songs)
         end = time.time()
         stats.print_stats()
         total_time = end-start
