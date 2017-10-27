@@ -39,7 +39,7 @@ from bs4 import BeautifulSoup
 import eyed3
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.DEBUG)
 
 # Send verbose logs to a log file
 debuglogger = logging.FileHandler('debuglog', 'w')
@@ -134,6 +134,10 @@ def metrolyrics(song):
 def darklyrics(song):
     '''Returns the lyrics found in darklyrics for the specified mp3 file or an
     empty string if not found'''
+    if not hasattr(song, 'album') or not song.album:
+        # DarkLyrics can't be used without the album name for now
+        return ''
+
     artist = song.artist.lower()
     artist = normalize(artist, URLESCAPES, '')
     album = song.album.lower()
@@ -804,7 +808,7 @@ def run_mp(songs):
 ''')
                 else:
                     print(f"Lyrics for {result.song} not found")
-                    bad.write(result.song+'\n')
+                    bad.write(str(result.song)+'\n')
                     bad.flush()
 
     finally:
@@ -839,6 +843,7 @@ def load_from_file(filename):
 jobcount = 1
 overwrite = False
 errno = 0
+print_stats = False
 
 def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
@@ -846,6 +851,7 @@ def parseargv():
     global jobcount
     global overwrite
     global errno
+    global print_stats
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
@@ -859,6 +865,8 @@ def parseargv():
             " mp3 files", nargs='?', const='.')
     parser.add_argument("-n", "--by-name", help="A list of song names in"
             " 'artist - title' format", nargs='*')
+    parser.add_argument("-s", "--stats", help="Print a series of statistics at"
+            " the end of the execution", action="store_true")
     parser.add_argument("-v", "--verbose", help="Set verbosity level (pass it"
             " up to three times)", action="count")
     parser.add_argument("--from-file", help="Read a list of files from a text"
@@ -866,6 +874,9 @@ def parseargv():
     parser.add_argument("files", help="The mp3 files to search lyrics for",
             nargs="*")
     args = parser.parse_args()
+
+    overwrite = args.overwrite
+    print_stats = args.stats
 
     if args.verbose is None or args.verbose == 0:
         logger.setLevel(logging.CRITICAL)
@@ -889,11 +900,6 @@ def parseargv():
         else:
             jobcount = args.jobs
 
-
-    if args.overwrite:
-        overwrite = args.overwrite
-
-
     songs = set()
     if not args.by_name:
         mp3files = []
@@ -909,11 +915,13 @@ def parseargv():
             mp3files = load_from_file(args.from_file)
             if not mp3files:
                 logger.error('Err: Could not read from file')
+                sys.stderr.write('Err: Could not read from file\n')
                 errno = os.errno.EIO
                 return None
 
         else:
             logger.error("Err: No files specified")
+            sys.stderr.write("Err: No files specified\n")
             errno = os.errno.EINVAL
             return None
 
@@ -922,13 +930,17 @@ def parseargv():
         for song in args.by_name:
             songs.add(Song.from_string(song))
 
-    return songs
+    # Just in case some song constructors failed, remove all the Nones
+    return songs.difference({None})
 
 def main():
     songs = parseargv()
-    if not songs:
+    if songs is None:
         print (os.strerror(errno))
         return errno
+    elif len(songs) == 0:
+        print('No songs specified')
+        return 0
     else:
         print(songs)
 
@@ -937,7 +949,9 @@ def main():
         start = time.time()
         stats = run_mp(songs)
         end = time.time()
-        stats.print_stats()
+        if print_stats:
+            stats.print_stats()
+
         total_time = end-start
         total_time = "%d:%02d:%02d" % (total_time/3600, (total_time/3600)/60, (total_time%3600)%60)
         print(f"Total time: {total_time}")
