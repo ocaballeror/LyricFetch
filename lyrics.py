@@ -689,6 +689,8 @@ class Song:
 
         tags = eyed3.load(filename).tag
         song = cls.__new__(cls)
+        song.__init__()
+
         song.filename = filename
         song.title = tags.title
         song.album = tags.album
@@ -702,25 +704,31 @@ class Song:
     @classmethod
     def from_info(cls, artist, title, album=""):
         song = cls.__new__(cls)
+        song.__init__()
+
         song.artist = artist
         song.title = title
         song.album = album
-        song.lyrics = ""
 
         return song
 
     @classmethod
-    def from_string(cls, name, separator='-'):
+    def from_string(cls, name, separator='-', reverse=False):
         """Parse attributes from a string formatted as 'artist - title'"""
         song = cls.__new__(cls)
+        song.__init__()
+
         recv = [t.strip() for t in name.split(separator)]
         if len(recv) < 2:
             sys.stderr.write('Wrong format!\n')
             return None
 
-        song.artist = recv[0]
-        song.title = ''.join(recv[1:])
-        song.lyrics = ''
+        if reverse:
+            song.title = recv[0]
+            song.artist = ''.join(recv[1:])
+        else:
+            song.artist = recv[0]
+            song.title = ''.join(recv[1:])
 
         return song
 
