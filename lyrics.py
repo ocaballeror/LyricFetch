@@ -126,7 +126,8 @@ def metrolyrics(song):
     verses = body.find_all('p')
     for verse in verses:
         text += verse.get_text().strip()
-        text += '\n\n'
+        if verse != verses[-1]:
+            text += '\n\n'
 
     return text.strip()
 
@@ -678,6 +679,10 @@ class Song:
 
     @classmethod
     def from_filename(cls, filename):
+        if not filename:
+            logger.error("No filename specified")
+            return None
+
         if not os.path.exists(filename):
             logger.error(f"Err: File '{filename}' not found")
             return None
@@ -705,6 +710,10 @@ class Song:
         song = cls.__new__(cls)
         song.__init__()
 
+        if not artist or not title:
+            logger.error("Incomplete song info")
+            return None
+
         song.artist = artist
         song.title = title
         song.album = album
@@ -719,7 +728,7 @@ class Song:
 
         recv = [t.strip() for t in name.split(separator)]
         if len(recv) < 2:
-            sys.stderr.write('Wrong format!\n')
+            logger.error('Wrong format!')
             return None
 
         if reverse:
@@ -728,6 +737,10 @@ class Song:
         else:
             song.artist = recv[0]
             song.title = ''.join(recv[1:])
+
+        if not song.artist or not song.title:
+            logger.error('Wrong format!')
+            return None
 
         return song
 
