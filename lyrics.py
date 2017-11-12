@@ -26,6 +26,7 @@ import time
 import re
 import math
 import argparse
+import importlib
 import glob
 import logging
 import ssl
@@ -757,10 +758,54 @@ class Result:
         # the website. Keys corresponding to unused sources will be missing
         self.runtimes = runtimes
 
-def get_lyrics(song):
-    """Searches for lyrics of a single song and returns an mp_res object with
-    the various stats collected in the process. It is intended to be an
-    auxiliary function to run, which will invoke it as a parallel process"""
+def exclude_sources(exclude, section=False):
+    """Returns a narrower list of sources.
+    If the exclude parameter is a list, every one of its items will be removed
+    from the returned list.
+    If it's just a function (or a function's name) and 'section' is set to
+    False (default), a copy of the sources list without this element will be
+    returned.
+    If it's a function (or a function's name) but the section parameter is set
+    to True, the returned list will be a section of the sources list, including
+    everything between 'exclude' and the end of the list"""
+    logger.debug('Wahttup')
+    newlist = sources.copy()
+    if type(exclude) is list:
+        logger.debug('list')
+        newlist = sources
+        for source in exclude:
+            if source in newlist:
+                newlist = newlist.remove(source)
+    elif callable(exclude):
+        logger.debug('callable')
+        if not section:
+            newlist = newlist.remove(exclude)
+        else:
+            if exclude in newlist:
+                pos = newlist.index(exclude)
+                newlist = sources[pos:]
+    elif type(exclude) is str:
+        logger.debug('string')
+        this_module = importlib.import_module(__name__)
+        if hasattr(this_module, exclude):
+            func = getattr(this_module, exclude)
+            print(func)
+            if not section:
+                newlist = newlist.remove(exclude)
+            else:
+                if func in newlist:
+                    pos = newlist.index(func)
+                    newlist = sources[pos+1:]
+    else:
+        logger.debug('Something else')
+
+    return newlist
+
+def get_lyrics(song, sources=sources):
+    """Searches for lyrics of a single song and returns a Result object with
+    the various stats collected in the process.
+    The optional parameter 'sources' specifies an alternative list of sources.
+    If not present, the main list will be used"""
 
     if song.lyrics and not overwrite:
         logger.debug(f"'{song}' already has embedded lyrics")
@@ -785,7 +830,7 @@ def get_lyrics(song):
                 logger.info(f'-- {source.__name__}: Could not find lyrics for {song}\n')
 
         except (HTTPError, HTTPException, URLError, ConnectionError) as e:
-            logger.exception(f'== {source.__name__}: {e}\n')
+            # logger.exception(f'== {source.__name__}: {e}\n')
             logger.info(f'-- {source.__name__}: Could not find lyrics for {song}\n')
 
         finally:
