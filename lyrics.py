@@ -1,4 +1,4 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
 
 """
 Find lyrics for all the .mp3 files in the current directory
@@ -32,7 +32,7 @@ import logging
 import ssl
 import urllib.request as request
 
-from urllib.error import *
+from urllib.error import URLError,HTTPError
 from http.client import HTTPException
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
@@ -40,17 +40,17 @@ from bs4 import BeautifulSoup
 import eyed3
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Send verbose logs to a log file
-debuglogger = logging.FileHandler('debuglog', 'w')
-debuglogger.setLevel(logging.DEBUG)
-logger.addHandler(debuglogger)
+# debuglogger = logging.FileHandler('debuglog', 'w')
+# debuglogger.setLevel(logging.DEBUG)
+# logger.addHandler(debuglogger)
 
 # Send error logs to an errlog file
-errlogger = logging.FileHandler('errlog', 'w')
-errlogger.setLevel(logging.WARNING)
-logger.addHandler(errlogger)
+# errlogger = logging.FileHandler('errlog', 'w')
+# errlogger.setLevel(logging.WARNING)
+# logger.addHandler(errlogger)
 
 # Discard eyed3 messages unless they're important
 logging.getLogger("eyed3.mp3.headers").setLevel(logging.CRITICAL)
@@ -843,8 +843,9 @@ def run_mp(songs):
     '''Concurrently calls get_lyrics to fetch the lyrics of a large list of
     songs'''
     stats = Stats()
-    good = open('found', 'w')
-    bad = open('notfound', 'w')
+    if debug:
+        good = open('found', 'w')
+        bad = open('notfound', 'w')
 
     logger.debug(f"Launching a pool of {jobcount} processes")
     chunksize = math.ceil(len(songs)/os.cpu_count())
@@ -857,8 +858,9 @@ def run_mp(songs):
                     stats.add_result(source, result.source == source, runtime)
 
                 if result.source is not None:
-                    good.write(f"{id_source(source)}: {result.song}\n")
-                    good.flush()
+                    if debug:
+                        good.write(f"{id_source(source)}: {result.song}\n")
+                        good.flush()
 
                     if hasattr(result.song, 'filename'):
                         audiofile = eyed3.load(result.song.filename)
@@ -873,12 +875,14 @@ def run_mp(songs):
 ''')
                 else:
                     print(f"Lyrics for {result.song} not found")
-                    bad.write(str(result.song)+'\n')
-                    bad.flush()
+                    if debug:
+                        bad.write(str(result.song)+'\n')
+                        bad.flush()
 
     finally:
-        good.close()
-        bad.close()
+        if debug:
+            good.close()
+            bad.close()
 
     return stats
 
@@ -909,6 +913,7 @@ jobcount = 1
 overwrite = False
 errno = 0
 print_stats = False
+debug = False
 
 def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
@@ -917,6 +922,7 @@ def parseargv():
     global overwrite
     global errno
     global print_stats
+    global debug
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
@@ -934,6 +940,8 @@ def parseargv():
             " the end of the execution", action="store_true")
     parser.add_argument("-v", "--verbose", help="Set verbosity level (pass it"
             " up to three times)", action="count")
+    parser.add_argument("-d", "--debug", help="Enable debug output",
+            action="store_true")
     parser.add_argument("--from-file", help="Read a list of files from a text"
             " file", type=str)
     parser.add_argument("files", help="The mp3 files to search lyrics for",
