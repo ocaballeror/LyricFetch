@@ -745,21 +745,6 @@ class Song:
 
         return song
 
-    @classmethod
-    def from_string(cls, name, separator='-'):
-        """Parse attributes from a string formatted as 'artist - title'"""
-        song = cls.__new__(cls)
-        recv = [t.strip() for t in name.split(separator)]
-        if len(recv) < 2:
-            sys.stderr.write('Wrong format!\n')
-            return None
-
-        song.artist = recv[0]
-        song.title = ''.join(recv[1:])
-        song.lyrics = ''
-
-        return song
-
 class Result:
     """Contains the results generated from run, so they can be returned as a
     single variable"""
@@ -783,36 +768,30 @@ def exclude_sources(exclude, section=False):
     If it's a function (or a function's name) but the section parameter is set
     to True, the returned list will be a section of the sources list, including
     everything between 'exclude' and the end of the list"""
-    logger.debug('Wahttup')
     newlist = sources.copy()
-    if type(exclude) is list:
-        logger.debug('list')
+    if isinstance(exclude, list):
         newlist = sources
         for source in exclude:
             if source in newlist:
                 newlist = newlist.remove(source)
     elif callable(exclude):
-        logger.debug('callable')
         if not section:
             newlist = newlist.remove(exclude)
         else:
             if exclude in newlist:
                 pos = newlist.index(exclude)
                 newlist = sources[pos:]
-    elif type(exclude) is str:
-        logger.debug('string')
+    elif isinstance(exclude, str):
         this_module = importlib.import_module(__name__)
         if hasattr(this_module, exclude):
             func = getattr(this_module, exclude)
-            print(func)
+            logger.debug('Using new source %s', func.__name__)
             if not section:
                 newlist = newlist.remove(exclude)
             else:
                 if func in newlist:
                     pos = newlist.index(func)
                     newlist = sources[pos+1:]
-    else:
-        logger.debug('Something else')
 
     return newlist
 
