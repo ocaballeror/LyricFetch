@@ -127,8 +127,7 @@ def metrolyrics(song):
     verses = body.find_all('p')
     for verse in verses:
         text += verse.get_text().strip()
-        if verse != verses[-1]:
-            text += '\n\n'
+        text += '\n\n'
 
     return text.strip()
 
