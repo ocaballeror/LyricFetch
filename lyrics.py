@@ -744,6 +744,21 @@ class Song:
 
         return song
 
+    @classmethod
+    def from_string(cls, name, separator='-'):
+        """Parse attributes from a string formatted as 'artist - title'"""
+        song = cls.__new__(cls)
+        recv = [t.strip() for t in name.split(separator)]
+        if len(recv) < 2:
+            sys.stderr.write('Wrong format!\n')
+            return None
+
+        song.artist = recv[0]
+        song.title = ''.join(recv[1:])
+        song.lyrics = ''
+
+        return song
+
 class Result:
     """Contains the results generated from run, so they can be returned as a
     single variable"""
