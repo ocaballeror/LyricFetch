@@ -30,6 +30,7 @@ import importlib
 import glob
 import logging
 import ssl
+import json
 import urllib.request as request
 
 from urllib.error import URLError,HTTPError
@@ -55,6 +56,16 @@ logger.setLevel(logging.INFO)
 # Discard eyed3 messages unless they're important
 logging.getLogger("eyed3.mp3.headers").setLevel(logging.CRITICAL)
 
+CONFFILE = './config.json'
+CONFIG = {
+        'jobcount': 1,
+        'overwrite': False,
+        'errno': 0,
+        'print_stats': False,
+        'debug': False,
+        'lastfm_key': ''
+}
+
 def get_soup(url, safe=":/"):
     '''Requests the specified url and returns a BeautifulSoup object with its
     contents'''
@@ -71,6 +82,29 @@ def get_soup(url, safe=":/"):
         response = request.urlopen(req, context=context)
 
     return BeautifulSoup(response.read(), 'html.parser')
+
+def get_lastfm(method, **kwargs):
+    '''Request the specified method from the lastfm api'''
+    if 'lastfm_key' not in CONFIG or not CONFIG['lastfm_key']:
+        logger.warning('No lastfm key configured')
+        return ''
+
+    url = "http://ws.audioscrobbler.com/2.0/?method={}&api_key={}&format=json".format(
+            method,
+            CONFIG['lastfm_key'])
+    for key in kwargs:
+        url += '&{}={}'.format(key, kwargs[key])
+
+    url = request.quote(url, safe=':/?=&')
+    logger.debug('LASTFM URL: %s', url)
+    req = request.Request(url)
+    try:
+        response = request.urlopen(req)
+    except URLError as e:
+        logger.error('URLError when requesting from LAST.fm')
+        return ''
+
+    return json.loads(response.read())
 
 # Contains the characters usually removed or replaced in URLS
 URLESCAPE = ".¿?%_@,;&\\/()'\"-!¡"
@@ -134,9 +168,14 @@ def metrolyrics(song):
 def darklyrics(song):
     '''Returns the lyrics found in darklyrics for the specified mp3 file or an
     empty string if not found'''
+
+    # Darklyrics relies on the album name
     if not hasattr(song, 'album') or not song.album:
-        # DarkLyrics can't be used without the album name for now
-        return ''
+        song.fetch_album_name()
+        if not hasattr(song, 'album') or not song.album:
+            # If we don't have the name of the album, there's nothing we can do
+            # on darklyrics
+            return ""
 
     artist = song.artist.lower()
     artist = normalize(artist, URLESCAPES, '')
@@ -691,7 +730,16 @@ class Song:
             logger.error(f"Err: File '{filename}' is a directory")
             return None
 
-        tags = eyed3.load(filename).tag
+        try:
+            audiofile = eyed3.load(filename)
+        except Exception as e:
+            return None
+
+        # Sometimes eyed3 may return a null object and not raise any exceptions
+        if audiofile is None:
+            return None
+
+        tags = audiofile.tag
         song = cls.__new__(cls)
         song.__init__()
 
@@ -743,6 +791,20 @@ class Song:
             return None
 
         return song
+
+    def fetch_album_name(self):
+        '''Get the name of the album from lastfm'''
+        response = get_lastfm('track.getInfo', artist=self.artist, track=self.title)
+        if response:
+            try:
+                self.album = response['track']['album']['title']
+                logger.debug('Found album {} from lastfm'.format(self.album))
+            except Exception as e:
+                print(e)
+                logger.warning('Could not fetch album name for %s', self)
+        else:
+            logger.warning('Could not fetch album name for %s', self)
+
 
 class Result:
     """Contains the results generated from run, so they can be returned as a
@@ -800,7 +862,7 @@ def get_lyrics(song, sources=sources):
     The optional parameter 'sources' specifies an alternative list of sources.
     If not present, the main list will be used"""
 
-    if song.lyrics and not overwrite:
+    if song.lyrics and not CONFIG['overwrite']:
         logger.debug(f"'{song}' already has embedded lyrics")
         return None
 
@@ -836,14 +898,14 @@ def run_mp(songs):
     '''Concurrently calls get_lyrics to fetch the lyrics of a large list of
     songs'''
     stats = Stats()
-    if debug:
+    if CONFIG['debug']:
         good = open('found', 'w')
         bad = open('notfound', 'w')
 
-    logger.debug(f"Launching a pool of {jobcount} processes")
+    logger.debug("Launching a pool of {} processes".format(CONFIG['jobcount']))
     chunksize = math.ceil(len(songs)/os.cpu_count())
     try:
-        with Pool(jobcount) as pool:
+        with Pool(CONFIG['jobcount']) as pool:
             for result in pool.imap_unordered(get_lyrics, songs, chunksize):
                 if result is None: continue
 
@@ -851,7 +913,7 @@ def run_mp(songs):
                     stats.add_result(source, result.source == source, runtime)
 
                 if result.source is not None:
-                    if debug:
+                    if CONFIG['debug']:
                         good.write(f"{id_source(source)}: {result.song}\n")
                         good.flush()
 
@@ -868,16 +930,25 @@ def run_mp(songs):
 ''')
                 else:
                     print(f"Lyrics for {result.song} not found")
-                    if debug:
+                    if CONFIG['debug']:
                         bad.write(str(result.song)+'\n')
                         bad.flush()
 
     finally:
-        if debug:
+        if CONFIG['debug']:
             good.close()
             bad.close()
 
     return stats
+
+def load_config():
+    '''Load the configuration file'''
+    try:
+        with open(CONFFILE, 'r') as conffile:
+            CONFIG.update(json.load(conffile))
+    except Exception:
+        logger.warning('Could not load configuration file')
+        logger.debug(CONFIG)
 
 def load_from_file(filename):
     '''Load a list of filenames from an external text file'''
@@ -902,20 +973,10 @@ def load_from_file(filename):
         logger.exception(e)
         return None
 
-jobcount = 1
-overwrite = False
-errno = 0
-print_stats = False
-debug = False
-
 def parseargv():
     '''Parse command line arguments. Settings will be stored in the global
     variables declared above'''
-    global jobcount
-    global overwrite
     global errno
-    global print_stats
-    global debug
 
     parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
             " files and embed them as metadata")
@@ -941,8 +1002,8 @@ def parseargv():
             nargs="*")
     args = parser.parse_args()
 
-    overwrite = args.overwrite
-    print_stats = args.stats
+    CONFIG['overwrite'] = args.overwrite
+    CONFIG['print_stats'] = args.stats
 
     if args.verbose is None or args.verbose == 0:
         logger.setLevel(logging.CRITICAL)
@@ -964,7 +1025,7 @@ def parseargv():
             errno = os.errno.EINVAL
             return None
         else:
-            jobcount = args.jobs
+            CONFIG['jobcount'] = args.jobs
 
     songs = set()
     if not args.by_name:
@@ -1007,15 +1068,15 @@ def main():
     elif len(songs) == 0:
         print('No songs specified')
         return 0
-    else:
-        print(songs)
 
     logger.debug("Running with "+str(songs))
+
+    load_config()
     try:
         start = time.time()
         stats = run_mp(songs)
         end = time.time()
-        if print_stats:
+        if CONFIG['print_stats']:
             stats.print_stats()
 
         total_time = end-start
