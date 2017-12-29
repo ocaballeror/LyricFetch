@@ -83,6 +83,29 @@ def get_soup(url, safe=":/"):
 
     return BeautifulSoup(response.read(), 'html.parser')
 
+def get_lastfm(method, **kwargs):
+    '''Request the specified method from the lastfm api'''
+    if 'lastfm_key' not in CONFIG or not CONFIG['lastfm_key']:
+        logger.warning('No lastfm key configured')
+        return ''
+
+    url = "http://ws.audioscrobbler.com/2.0/?method={}&api_key={}&format=json".format(
+            method,
+            CONFIG['lastfm_key'])
+    for key in kwargs:
+        url += '&{}={}'.format(key, kwargs[key])
+
+    url = request.quote(url, safe=':/?=&')
+    logger.debug('LASTFM URL: %s', url)
+    req = request.Request(url)
+    try:
+        response = request.urlopen(req)
+    except URLError as e:
+        logger.error('URLError when requesting from LAST.fm')
+        return ''
+
+    return json.loads(response.read())
+
 # Contains the characters usually removed or replaced in URLS
 URLESCAPE = ".¿?%_@,;&\\/()'\"-!¡"
 URLESCAPES = URLESCAPE + ' '
@@ -145,9 +168,14 @@ def metrolyrics(song):
 def darklyrics(song):
     '''Returns the lyrics found in darklyrics for the specified mp3 file or an
     empty string if not found'''
+
+    # Darklyrics relies on the album name
     if not hasattr(song, 'album') or not song.album:
-        # DarkLyrics can't be used without the album name for now
-        return ''
+        song.fetch_album_name()
+        if not hasattr(song, 'album') or not song.album:
+            # If we don't have the name of the album, there's nothing we can do
+            # on darklyrics
+            return ""
 
     artist = song.artist.lower()
     artist = normalize(artist, URLESCAPES, '')
@@ -702,7 +730,16 @@ class Song:
             logger.error(f"Err: File '{filename}' is a directory")
             return None
 
-        tags = eyed3.load(filename).tag
+        try:
+            audiofile = eyed3.load(filename)
+        except Exception as e:
+            return None
+
+        # Sometimes eyed3 may return a null object and not raise any exceptions
+        if audiofile is None:
+            return None
+
+        tags = audiofile.tag
         song = cls.__new__(cls)
         song.__init__()
 
@@ -755,20 +792,19 @@ class Song:
 
         return song
 
-    @classmethod
-    def from_string(cls, name, separator='-'):
-        """Parse attributes from a string formatted as 'artist - title'"""
-        song = cls.__new__(cls)
-        recv = [t.strip() for t in name.split(separator)]
-        if len(recv) < 2:
-            sys.stderr.write('Wrong format!\n')
-            return None
+    def fetch_album_name(self):
+        '''Get the name of the album from lastfm'''
+        response = get_lastfm('track.getInfo', artist=self.artist, track=self.title)
+        if response:
+            try:
+                self.album = response['track']['album']['title']
+                logger.debug('Found album {} from lastfm'.format(self.album))
+            except Exception as e:
+                print(e)
+                logger.warning('Could not fetch album name for %s', self)
+        else:
+            logger.warning('Could not fetch album name for %s', self)
 
-        song.artist = recv[0]
-        song.title = ''.join(recv[1:])
-        song.lyrics = ''
-
-        return song
 
 class Result:
     """Contains the results generated from run, so they can be returned as a
