@@ -463,7 +463,7 @@ def letras(song):
         br.replace_with('\n')
 
     for p in content.find_all('p'):
-        text += p.get_text()
+        text += p.get_text()+'\n\n'
 
     return text.strip()
 
