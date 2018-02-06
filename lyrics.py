@@ -33,7 +33,7 @@ import ssl
 import json
 import urllib.request as request
 
-from urllib.error import URLError,HTTPError
+from urllib.error import URLError, HTTPError
 from http.client import HTTPException
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
@@ -723,11 +723,11 @@ class Song:
             return None
 
         if not os.path.exists(filename):
-            logger.error(f"Err: File '{filename}' not found")
+            logger.error("Err: File '%s' does not exist", filename)
             return None
 
         if os.path.isdir(filename):
-            logger.error(f"Err: File '{filename}' is a directory")
+            logger.error("Err: File '%s' is a directory", filename)
             return None
 
         try:
@@ -794,13 +794,14 @@ class Song:
 
     def fetch_album_name(self):
         '''Get the name of the album from lastfm'''
-        response = get_lastfm('track.getInfo', artist=self.artist, track=self.title)
+        response = get_lastfm('track.getInfo', artist=self.artist,
+                track=self.title)
         if response:
             try:
                 self.album = response['track']['album']['title']
-                logger.debug('Found album {} from lastfm'.format(self.album))
-            except Exception as e:
-                print(e)
+                logger.debug('Found album %s from lastfm', self.album)
+            except Exception as error:
+                print(error)
                 logger.warning('Could not fetch album name for %s', self)
         else:
             logger.warning('Could not fetch album name for %s', self)
@@ -863,7 +864,7 @@ def get_lyrics(song, sources=sources):
     If not present, the main list will be used"""
 
     if song.lyrics and not CONFIG['overwrite']:
-        logger.debug(f"'{song}' already has embedded lyrics")
+        logger.debug(f"%s already has embedded lyrics", song)
         return None
 
     lyrics = ""
@@ -953,10 +954,10 @@ def load_config():
 def load_from_file(filename):
     '''Load a list of filenames from an external text file'''
     if os.path.isdir(filename):
-        logger.error(f"Err: '{filename}' is a directory")
+        logger.error("Err: File '%s' is a directory", filename)
         return None
     if not os.path.isfile(filename):
-        logger.error(f"Err: File '{filename}' does not exist")
+        logger.error("Err: File '%s' does not exist", filename)
         return None
 
     try:
@@ -1020,8 +1021,8 @@ def parseargv():
             errno = os.errno.EINVAL
             return None
         elif args.jobs <= 0:
-            logger.error(f"{sys.argv[0]}: error: argument -j/--jobs should"
-            " have a value greater than zero")
+            logger.error("%s: error: argument -j/--jobs should"
+            " have a value greater than zero", sys.argv[0])
             errno = os.errno.EINVAL
             return None
         else:
@@ -1069,7 +1070,7 @@ def main():
         print('No songs specified')
         return 0
 
-    logger.debug("Running with "+str(songs))
+    logger.debug("Running with %s", songs)
 
     load_config()
     try:
