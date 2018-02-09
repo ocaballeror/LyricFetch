@@ -68,13 +68,12 @@ CONFIG = {
     'lastfm_key': ''
 }
 
-
-def get_soup(url, safe=':/'):
+def get_soup(url):
     """
     Requests the specified url and returns a BeautifulSoup object with its
     contents.
     """
-    url = request.quote(url, safe=safe)
+    url = request.quote(url, safe=":/?=%")
     logger.debug('URL: %s', url)
     req = request.Request(url, headers={'User-Agent': 'foobar'})
     try:
@@ -102,7 +101,7 @@ def get_lastfm(method, **kwargs):
     for key in kwargs:
         url += '&{}={}'.format(key, kwargs[key])
 
-    url = request.quote(url, safe=':/?=&')
+    url = request.quote(url)
     logger.debug('LASTFM URL: %s', url)
     req = request.Request(url)
     try:
