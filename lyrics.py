@@ -55,6 +55,7 @@ logger.setLevel(logging.INFO)
 # Discard eyed3 messages unless they're important
 logging.getLogger("eyed3.mp3.headers").setLevel(logging.CRITICAL)
 
+TEMPFILE = "/tmp/lyrics_last_search"
 CONFFILE = './config.json'
 CONFIG = {
         'jobcount': 1,
@@ -883,32 +884,59 @@ class Song:
     def fetch_album_name(self):
         """Get the name of the album from lastfm."""
         response = get_lastfm('track.getInfo', artist=self.artist,
-                track=self.title)
+                              track=self.title)
         if response:
             try:
                 self.album = response['track']['album']['title']
                 logger.debug('Found album %s from lastfm', self.album)
-            except Exception as error:
-                print(error)
+            except KeyError as error:
+                logger.exception(error)
                 logger.warning('Could not fetch album name for %s', self)
         else:
             logger.warning('Could not fetch album name for %s', self)
 
 
-class Result:
+def next_song():
     """
-    Encapsulates the results generated from `run`, so they can be returned as a
-    single variable.
+    Get the next song in the album. A previous search must have been made with
+    the -n option.
     """
-    def __init__(self, song, source=None, runtimes={}):
-        self.song = song
+    if not os.path.exists(TEMPFILE):
+        return None
 
-        # The source where the lyrics were found (or None if they weren't)
-        self.source = source
+    try:
+        with open(TEMPFILE, 'r') as tempfile:
+            song = Song.from_string(tempfile.readline())
+        song.fetch_album_name()
+        if not song.album:
+            logger.error('Could not get the album name')
+            return None
 
-        # A dictionary that maps every source to the time taken to scrape
-        # the website. Keys corresponding to unused sources will be missing
-        self.runtimes = runtimes
+        response = get_lastfm('album.getInfo', artist=song.artist,
+                              album=song.album)
+        if not response:
+            print('Could not fetch album information')
+            return None
+        try:
+            tracks = response['album']['tracks']['track']
+        except KeyError:
+            print('Could not fetch album information')
+            return None
+
+        name = ''
+        for idx, track in enumerate(tracks):
+            if track['name'].lower() == song.title.lower() and\
+               idx+1 < len(tracks):
+                name = tracks[idx+1]['name']
+
+        if name == '':
+            print('That was the last song of the album')
+            return None
+
+        return Song.from_info(artist=song.artist, title=name, album=song.album)
+    except IOError as error:
+        logger.exception(error)
+        return None
 
 
 def exclude_sources(exclude, section=False):
@@ -956,7 +984,7 @@ def exclude_sources(exclude, section=False):
 
 def get_lyrics(song, sources=sources):
     """
-    Searches for lyrics of a single song and returns a Result object with the
+    Searches for lyrics of a single song and returns a dictionary with the
     various stats collected in the process.
 
     The optional parameter 'sources' specifies an alternative list of sources.
@@ -982,7 +1010,7 @@ def get_lyrics(song, sources=sources):
                 logger.info('-- %s: Found lyrics for %s',
                             source.__name__, song)
                 song.lyrics = lyrics
-                return Result(song, source, runtimes)
+                return {'song': song, 'source': source, 'runtimes': runtimes}
             else:
                 logger.info('-- %s: Could not find lyrics for %s',
                             source.__name__, song)
@@ -996,7 +1024,21 @@ def get_lyrics(song, sources=sources):
             end = time.time()
             runtimes[source] = end-start
 
-    return Result(song, None, runtimes)
+    return {'song': song, 'source': None, 'runtimes': runtimes}
+
+
+def run(song):
+    """
+    Get and print the lyrics for a single song.
+    """
+    result = get_lyrics(song)
+    if result['source'] is None:
+        return
+
+    else:
+        print(f"FROM {id_source(result['source'], True)}\n"
+              f"{result['song'].lyrics}\n"
+              "--------------------------------------------")
 
 
 def run_mp(songs):
@@ -1016,29 +1058,27 @@ def run_mp(songs):
             for result in pool.imap_unordered(get_lyrics, songs, chunksize):
                 if result is None: continue
 
-                for source, runtime in result.runtimes.items():
+                for source, runtime in result['runtimes'].items():
                     stats.add_result(source, result.source == source, runtime)
 
-                if result.source is not None:
+                if result['source'] is not None:
                     if CONFIG['debug']:
-                        good.write(f"{id_source(source)}: {result.song}\n")
-                        good.flush()
+                        good.write("%s: %s\n" % (id_source(result['source']),
+                                                 result['song']))
 
-                    if hasattr(result.song, 'filename'):
-                        audiofile = eyed3.load(result.song.filename)
-                        audiofile.tag.lyrics.set(u''+result.song.lyrics)
+                    if hasattr(result['song'], 'filename'):
+                        audiofile = eyed3.load(result['song'].filename)
+                        audiofile.tag.lyrics.set(u''+result['song'].lyrics)
                         audiofile.tag.save()
-                        print("Lyrics added for "+str(result.song))
+                        print("Lyrics added for "+str(result['song']))
                     else:
-                        print(f'''FROM {id_source(result.source, full=True)}
-
-{result.song.lyrics}
------------------------------------------------------------------------------\
-''')
+                        print(f"FROM {id_source(result['source'], True)}\n"
+                              f"{result['song'].lyrics}\n"
+                              "--------------------------------------------")
                 else:
-                    print(f"Lyrics for {result.song} not found")
+                    print(f"Lyrics for {result['song']} not found")
                     if CONFIG['debug']:
-                        bad.write(str(result.song)+'\n')
+                        bad.write(str(result['song'])+'\n')
                         bad.flush()
 
     finally:
@@ -1108,6 +1148,7 @@ def parseargv():
                         " up to three times)", action="count")
     parser.add_argument("-d", "--debug", help="Enable debug output",
                         action="store_true")
+    parser.add_argument("--next", help="Get the next song in the album")
     parser.add_argument("--from-file", help="Read a list of files from a text"
                         " file", type=str)
     parser.add_argument("files", help="The mp3 files to search lyrics for",
@@ -1141,7 +1182,17 @@ def parseargv():
             CONFIG['jobcount'] = args.jobs
 
     songs = set()
-    if not args.by_name:
+    if args.by_name:
+        for song in args.by_name:
+            songs.add(Song.from_string(song))
+    elif args.next:
+        song = next_song()
+        if song is None:
+            logger.error('No previous search found!')
+            errno = os.errno.EINVAL
+            return None
+        songs.add(song)
+    else:
         mp3files = []
         if args.files:
             mp3files = args.files
@@ -1166,9 +1217,6 @@ def parseargv():
             return None
 
         songs = set([Song.from_filename(f) for f in mp3files])
-    else:
-        for song in args.by_name:
-            songs.add(Song.from_string(song))
 
     # Just in case some song constructors failed, remove all the Nones
     return songs.difference({None})
@@ -1182,7 +1230,7 @@ def main():
     if songs is None:
         print(os.strerror(errno))
         return errno
-    elif not songs():
+    elif len(songs) == 0:
         print('No songs specified')
         return 0
 
@@ -1190,17 +1238,20 @@ def main():
 
     load_config()
     try:
-        start = time.time()
-        stats = run_mp(songs)
-        end = time.time()
-        if CONFIG['print_stats']:
-            stats.print_stats()
+        if len(songs) == 1 or CONFIG['jobs'] == 1:
+            run(songs)
+        else:
+            start = time.time()
+            stats = run_mp(songs)
+            end = time.time()
+            if CONFIG['print_stats']:
+                stats.print_stats()
 
-        total_time = end-start
-        total_time = "%d:%02d:%02d" % (total_time / 3600,
-                                      (total_time / 3600) / 60,
-                                      (total_time % 3600) % 60)
-        print("Total time:", total_time)
+            total_time = end-start
+            total_time = "%d:%02d:%02d" % (total_time / 3600,
+                                          (total_time / 3600) / 60,
+                                          (total_time % 3600) % 60)
+            print("Total time:", total_time)
 
     except KeyboardInterrupt:
         print("Interrupted")
