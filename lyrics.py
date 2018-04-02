@@ -922,7 +922,7 @@ def run_mp(songs):
                         audiofile = eyed3.load(result.song.filename)
                         audiofile.tag.lyrics.set(u''+result.song.lyrics)
                         audiofile.tag.save()
-                        print("Lyrics added for "+str(result.song))
+                        print(f"{id_source(result.source)} Lyrics added for {result.song}")
                     else:
                         print(f'''FROM {id_source(result.source, full=True)}
 
