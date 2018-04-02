@@ -454,6 +454,15 @@ def letras(song):
 
     url = "https://www.letras.com/{}/{}/".format(artist, title)
     soup = get_soup(url)
+    if not soup:
+        return ""
+
+    found_title = soup.select_one('div.cnt-head_title h1').get_text()
+    found_title = re.sub(r'[\W_]+', '', found_title.lower())
+    if found_title != re.sub(r'[\W_]+', '', song.title.lower()):
+        # the site took us to the wrong song page. It does it from time to time
+        return ""
+
     content = soup.find('article')
     if not content:
         return ""
