@@ -18,7 +18,6 @@ and write them as metadata for the files
 # lyricsmode.com      X
 # metal-archives.com  X
 # letras.mus.br       X
-# musica.com          X
 
 import sys
 import os
@@ -480,47 +479,6 @@ def letras(song):
 
     return text.strip()
 
-def musica(song):
-    '''Returns the lyrics found in musica.com for the specified mp3 file or an
-    empty string if not found'''
-    safe = "?=:/"
-    artist = song.artist.title()
-    artist = normalize(artist)
-    title = song.title.title()
-    title = normalize(title.lower())
-
-    url = "https://www.musica.com/letras.asp?t2="+artist
-    soup = get_soup(url, safe=safe)
-    first_res = soup.find(href=re.compile(r'https://www.musica.com/letras.asp\?letras=.*'))
-    if first_res is None:
-        return ""
-
-    url = first_res['href']
-    soup = get_soup(url, safe=safe)
-    for a in soup.find_all('a'):
-        if re.search(re.escape(title)+"$", a.text, re.IGNORECASE):
-            first_res = a
-            break
-    else:
-        return ""
-
-    url = "https://www.musica.com/"+first_res['href']
-    soup = get_soup(url, safe=safe)
-    content = soup.p
-    if not content:
-        return ""
-
-    for rem in content.find_all('font'):
-        rem.unwrap()
-    for googlead in content.find_all(['script', 'ins']):
-        googlead.decompose()
-
-    text = str(content)
-    text = re.sub(r'<.?p>', '', text)
-    text = re.sub(r'<.?br.?>', '\n', text)
-
-    return text.strip()
-
 
 sources = [
     azlyrics,
@@ -534,8 +492,7 @@ sources = [
     vagalume,
     letras,
     lyricsmode,
-    lyricscom,
-    musica
+    lyricscom
 ]
 
 def id_source(source, full=False):
@@ -564,8 +521,6 @@ def id_source(source, full=False):
         name = "Lyricsmode.com" if full else 'LYM'
     elif source == lyricscom:
         name = "Lyrics.com" if full else 'LYC'
-    elif source == musica:
-        name = "Musica.com" if full else'MUS'
     else:
         name = ''
 
