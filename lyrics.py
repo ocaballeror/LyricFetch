@@ -32,11 +32,15 @@ import logging
 import ssl
 import json
 import urllib.request as request
+import threading
+import ctypes
+import time
 
 from urllib.error import URLError, HTTPError
 from http.client import HTTPException
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
+from queue import Queue
 
 import eyed3
 
@@ -816,6 +820,29 @@ class Song:
             logger.warning('Could not fetch album name for %s', self)
 
 
+class LyrThread(threading.Thread):
+    """
+    Threaded object to search for lyrics.
+    """
+    def __init__(self, source, song, queue):
+        super().__init__()
+        self.source = source
+        self.song = song
+        self.queue = queue
+
+    def run(self):
+        start = time.time()
+        try:
+            lyrics = self.source(self.song)
+        except (HTTPError, HTTPException, URLError, ConnectionError):
+            lyrics = ''
+
+        res = dict(runtime=time.time() - start,
+                   lyrics=lyrics,
+                   source=self.source)
+        self.queue.put(res)
+
+
 class Result:
     """Contains the results generated from run, so they can be returned as a
     single variable"""
@@ -828,6 +855,7 @@ class Result:
         # A dictionary that maps every source to the time taken to scrape
         # the website. Keys corresponding to unused sources will be missing
         self.runtimes = runtimes
+
 
 def exclude_sources(exclude, section=False):
     """Returns a narrower list of sources.
@@ -866,6 +894,7 @@ def exclude_sources(exclude, section=False):
 
     return newlist
 
+
 def get_lyrics(song, sources=sources):
     """Searches for lyrics of a single song and returns a Result object with
     the various stats collected in the process.
@@ -876,33 +905,30 @@ def get_lyrics(song, sources=sources):
         logger.debug(f"%s already has embedded lyrics", song)
         return None
 
-    lyrics = ""
-    start = 0
-    end = 0
     runtimes = {}
-    for source in sources:
-        try:
-            start = time.time()
-            lyrics = source(song)
-            end = time.time()
-            runtimes[source] = end-start
+    queue = Queue()
+    pool = [LyrThread(source, song, queue) for source in sources]
+    for thread in pool:
+        thread.start()
 
-            if lyrics != '':
-                logger.info(f'++ {source.__name__}: Found lyrics for {song}\n')
-                song.lyrics = lyrics
-                return Result(song, source, runtimes)
-            else:
-                logger.info(f'-- {source.__name__}: Could not find lyrics for {song}\n')
+    for _ in range(len(sources)):
+        while queue.empty():
+            time.sleep(.01)
+        result = queue.get()
+        if result['lyrics'] != '':
+            break
 
-        except (HTTPError, HTTPException, URLError, ConnectionError) as e:
-            # logger.exception(f'== {source.__name__}: {e}\n')
-            logger.info(f'-- {source.__name__}: Could not find lyrics for {song}\n')
+    source = result['source']
+    runtimes[source] = result['runtime']
+    if result['lyrics'] != '':
+        logger.info(f"++ {source.__name__}: Found lyrics for {song}\n")
+        song.lyrics = result['lyrics']
+    else:
+        logger.info(f"-- {source.__name__}: Couldn't find lyrics for {song}\n")
+        source = None
 
-        finally:
-            end = time.time()
-            runtimes[source] = end-start
+    return Result(song, source, runtimes)
 
-    return Result(song, None, runtimes)
 
 def run_mp(songs):
     '''Concurrently calls get_lyrics to fetch the lyrics of a large list of
