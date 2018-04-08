@@ -358,7 +358,11 @@ def songlyrics(song):
     if not text:
         return ""
 
-    return text.getText().strip()
+    text = text.getText().strip()
+    if not text or text.lower().startswith('we do not have the lyrics for'):
+        return ""
+
+    return text
 
 def lyricscom(song):
     '''Returns the lyrics found in lyrics.com for the specified mp3 file or an
