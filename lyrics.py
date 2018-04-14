@@ -288,7 +288,7 @@ def lyricswikia(song):
 
     for unformat in content.findChildren(['i', 'b']):
         unformat.unwrap()
-    for remove in content.findChildren('div'):
+    for remove in content.findChildren(['div', 'span']):
         remove.decompose()
 
     nlcount = 0
