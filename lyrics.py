@@ -243,14 +243,14 @@ def genius(song):
 def metalarchives(song):
     '''Returns the lyrics found in MetalArchives for the specified mp3 file or an
     empty string if not found'''
-    artist = song.artist.capitalize()
-    artist = normalize(artist, ' ', '_')
-    title = song.title.capitalize()
-    title = normalize(title, ' ', '_')
+    artist = normalize(song.artist)
+    title = normalize(song.title)
 
     url = "https://www.metal-archives.com/search/ajax-advanced/searching/songs/"
-    url += f"?songTitle={title}&bandName={artist}&exactBandMatch=1"
+    url += f"?songTitle={title}&bandName={artist}&ExactBandMatch=1"
     soup = get_soup(url, safe=':/?=&')
+    if not soup:
+        return ""
 
     song_id = ''
     song_id_re = re.compile(r'lyricsLink_([0-9]*)')
