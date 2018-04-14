@@ -464,10 +464,15 @@ def letras(song):
     if not soup:
         return ""
 
-    found_title = soup.select_one('div.cnt-head_title h1').get_text()
+    found_title = soup.select_one('div.cnt-head_title h1')
+    if not found_title:
+        # The site didn't find lyrics and took us to the homepage
+        return ""
+
+    found_title = found_title.get_text()
     found_title = re.sub(r'[\W_]+', '', found_title.lower())
     if found_title != re.sub(r'[\W_]+', '', song.title.lower()):
-        # the site took us to the wrong song page. It does it from time to time
+        # The site took us to the wrong song page
         return ""
 
     content = soup.find('article')
