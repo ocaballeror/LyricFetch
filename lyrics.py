@@ -123,13 +123,15 @@ def normalize(string, chars_to_remove=None, replacement=''):
 
     ret = string.translate(str.maketrans({
         'á': 'a',
+        'ä': 'a',
+        'æ': 'ae',
         'é': 'e',
         'í': 'i',
         'ó': 'o',
         'ö': 'o',
         'ú': 'u',
         'ü': 'u',
-        'ñ': 'n'
+        'ñ': 'n',
     }))
 
     if isinstance(chars_to_remove, dict):
