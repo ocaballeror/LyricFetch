@@ -859,34 +859,33 @@ def exclude_sources(exclude, section=False):
     return newlist
 
 
-def get_lyrics(song, sources=sources):
+def get_lyrics(song, l_sources=None):
     """Searches for lyrics of a single song and returns a Result object with
     the various stats collected in the process.
     The optional parameter 'sources' specifies an alternative list of sources.
     If not present, the main list will be used"""
+    if l_sources is None:
+        l_sources = sources
 
     if song.lyrics and not CONFIG['overwrite']:
-        logger.debug(f"%s already has embedded lyrics", song)
+        logger.debug("%s already has embedded lyrics", song)
         return None
 
     runtimes = {}
-    queue = Queue()
-    pool = [LyrThread(source, song, queue) for source in sources]
-    for thread in pool:
-        thread.start()
+    for source in l_sources:
+        start = time.time()
+        try:
+            lyrics = source(song)
+        except (HTTPError, HTTPException, URLError, ConnectionError):
+            lyrics = ''
 
-    for _ in range(len(sources)):
-        while queue.empty():
-            time.sleep(.01)
-        result = queue.get()
-        if result['lyrics'] != '':
+        runtimes[source] = time.time() - start
+        if lyrics != '':
             break
 
-    source = result['source']
-    runtimes[source] = result['runtime']
-    if result['lyrics'] != '':
+    if lyrics != '':
         logger.info(f"++ {source.__name__}: Found lyrics for {song}\n")
-        song.lyrics = result['lyrics']
+        song.lyrics = lyrics
     else:
         logger.info(f"-- {source.__name__}: Couldn't find lyrics for {song}\n")
         source = None
@@ -894,9 +893,84 @@ def get_lyrics(song, sources=sources):
     return Result(song, source, runtimes)
 
 
+def get_lyrics_threaded(song, l_sources=None):
+    """
+    Launches a pool of threads to search for the lyrics of a single song.
+
+    The optional parameter 'sources' specifies an alternative list of sources.
+    If not present, the main list will be used.
+    """
+    if l_sources is None:
+        l_sources = sources
+
+    if song.lyrics and not CONFIG['overwrite']:
+        logger.debug("%s already has embedded lyrics", song)
+        return None
+
+    runtimes = {}
+    queue = Queue()
+    pool = [LyrThread(source, song, queue) for source in l_sources]
+    for thread in pool:
+        thread.start()
+
+    for _ in range(len(pool)):
+        while queue.empty():
+            time.sleep(.01)
+        result = queue.get()
+        runtimes[result['source']] = result['runtime']
+        if result['lyrics'] != '':
+            break
+
+    if result['lyrics'] != '':
+        song.lyrics = result['lyrics']
+        source = result['source']
+    else:
+        source = None
+
+    return Result(song, source, runtimes)
+
+
+def process_result(result):
+    """
+    Process a result object by:
+        1. Saving the lyrics to the corresponding file(if applicable).
+        2. Printing the lyrics or the corresponding error/success message.
+        3. Returning a boolean indicating if the lyrics were found or not.
+    """
+    found = result.source is not None
+    if found:
+        if hasattr(result.song, 'filename'):
+            audiofile = eyed3.load(result.song.filename)
+            audiofile.tag.lyrics.set(u''+result.song.lyrics)
+            audiofile.tag.save()
+            print(f"{id_source(result.source)} Lyrics added for {result.song}")
+        else:
+            print(f'''FROM {id_source(result.source, full=True)}
+
+{result.song.lyrics}
+-----------------------------------------------------------------------------\
+''')
+    else:
+        print(f"Lyrics for {result.song} not found")
+
+    return found
+
+def run(songs):
+    """
+    Calls get_lyrics_threaded for a song or list of songs.
+    """
+    if not hasattr(songs, '__iter__'):
+        songs = [songs]
+
+    for song in songs:
+        result = get_lyrics_threaded(song)
+        process_result(result)
+
+
 def run_mp(songs):
-    '''Concurrently calls get_lyrics to fetch the lyrics of a large list of
-    songs'''
+    """
+    Concurrently calls get_lyrics to fetch the lyrics of a large list of songs.
+    """
     stats = Stats()
     if CONFIG['debug']:
         good = open('found', 'w')
@@ -912,25 +986,12 @@ def run_mp(songs):
                 for source, runtime in result.runtimes.items():
                     stats.add_result(source, result.source == source, runtime)
 
-                if result.source is not None:
-                    if CONFIG['debug']:
+                found = process_result(result)
+                if CONFIG['debug']:
+                    if found:
                         good.write(f"{id_source(source)}: {result.song}\n")
                         good.flush()
-
-                    if hasattr(result.song, 'filename'):
-                        audiofile = eyed3.load(result.song.filename)
-                        audiofile.tag.lyrics.set(u''+result.song.lyrics)
-                        audiofile.tag.save()
-                        print(f"{id_source(result.source)} Lyrics added for {result.song}")
                     else:
-                        print(f'''FROM {id_source(result.source, full=True)}
-
-{result.song.lyrics}
------------------------------------------------------------------------------\
-''')
-                else:
-                    print(f"Lyrics for {result.song} not found")
-                    if CONFIG['debug']:
                         bad.write(str(result.song)+'\n')
                         bad.flush()
 
@@ -1063,9 +1124,9 @@ def parseargv():
 def main():
     songs = parseargv()
     if songs is None:
-        print (os.strerror(errno))
+        print(os.strerror(errno))
         return errno
-    elif len(songs) == 0:
+    elif not songs:
         print('No songs specified')
         return 0
 
@@ -1073,15 +1134,17 @@ def main():
 
     load_config()
     try:
-        start = time.time()
-        stats = run_mp(songs)
-        end = time.time()
-        if CONFIG['print_stats']:
-            stats.print_stats()
-
-        total_time = end-start
-        total_time = "%d:%02d:%02d" % (total_time/3600, (total_time/3600)/60, (total_time%3600)%60)
-        print(f"Total time: {total_time}")
+        if len(songs) == 1:
+            run(songs)
+        else:
+            start = time.time()
+            stats = run_mp(songs)
+            end = time.time()
+            if CONFIG['print_stats']:
+                stats.print_stats()
+            total_time = end-start
+            total_time = "%d:%02d:%02d" % (total_time/3600, (total_time/3600)/60, (total_time%3600)%60)
+            print(f"Total time: {total_time}")
 
     except KeyboardInterrupt:
         print("Interrupted")
