@@ -506,36 +506,30 @@ sources = [
     lyricscom
 ]
 
+source_ids = {
+    azlyrics: ("AZL", "AZLyrics.com"),
+    metrolyrics: ("MET", "Metrolyrics.com"),
+    lyricswikia: ("WIK", "Lyrics.wikia.com"),
+    darklyrics: ("DAR", "Darklyrics.com"),
+    metalarchives: ("ARC", "Metal-archives.com"),
+    genius: ("GEN", "Genius.com"),
+    musixmatch: ("XMA", "Musixmatch.com"),
+    songlyrics: ("SON", "SongLyrics.com"),
+    vagalume: ("VAG", "Vagalume.com.br"),
+    letras: ("LET", "Letras.com"),
+    lyricsmode: ("LYM", "Lyricsmode.com"),
+    lyricscom: ("LYC", "Lyrics.com"),
+}
+
 def id_source(source, full=False):
     '''Returns the name of a website-scrapping function'''
-    if source == azlyrics:
-        name = "AZLyrics.com" if full else 'AZL'
-    elif source == metrolyrics:
-        name = "MetroLyrics.com" if full else 'MET'
-    elif source == lyricswikia:
-        name = "lyrics.wikia.com" if full else 'WIK'
-    elif source == darklyrics:
-        name = "DarkLyrics.com" if full else 'DAR'
-    elif source == metalarchives:
-        name = "Metal-archives.com" if full else 'ARC'
-    elif source == genius:
-        name = "Genius.com" if full else 'GEN'
-    elif source == musixmatch:
-        name = "Musixmatch.com" if full else 'XMA'
-    elif source == songlyrics:
-        name = "SongLyrics.com" if full else 'SON'
-    elif source == vagalume:
-        name = "Vagalume.com.br" if full else 'VAG'
-    elif source == letras:
-        name = "Letras.com" if full else 'LET'
-    elif source == lyricsmode:
-        name = "Lyricsmode.com" if full else 'LYM'
-    elif source == lyricscom:
-        name = "Lyrics.com" if full else 'LYC'
-    else:
-        name = ''
+    if source not in source_ids:
+        return ""
 
-    return name
+    if full:
+        return source_ids[source][1]
+    else:
+        return source_ids[source][0]
 
 class Record:
     """Defines an entry in the stats 'database'. Packs a set of information
