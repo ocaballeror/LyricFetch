@@ -271,24 +271,24 @@ def metalarchives(song):
     if not soup:
         return ""
 
-    song_id = ''
+    ids = []
     song_id_re = re.compile(r'lyricsLink_([0-9]*)')
     for link in soup.find_all('a'):
         song_id = re.search(song_id_re, str(link))
         if song_id:
-            song_id = song_id.group(1)
-            break
+            ids.append(song_id.group(1))
 
-    if not song_id:
+    if not ids:
         return ""
 
-    url = "https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
-    soup = get_soup(url)
-    text = soup.get_text()
-    if re.search('lyrics not available', text):
-        return ""
-    else:
-        return text.strip()
+    for song_id in ids:
+        url = "https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
+        soup = get_soup(url)
+        text = soup.get_text()
+        if not re.search('lyrics not available', text):
+            return text.strip()
+
+    return ""
 
 def lyricswikia(song):
     """
