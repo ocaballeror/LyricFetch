@@ -119,7 +119,7 @@ def test_normalize():
     Check that normalize removes extraneous characters from the passed string.
     """
     weird = 'aáeéiíoóöuúünñ'
-    assert normalize(weird) == 'aeioun'
+    assert normalize(weird) == 'aaeeiiooouuunn'
 
 
 def test_normalize_extra_chars_dir():
@@ -128,11 +128,11 @@ def test_normalize_extra_chars_dir():
     a dictionary.
     """
     chars_dict = {
-            'a': '0',
-            'e': '1'
+        'a': '0',
+        'e': '1'
     }
     weird = 'aáeéiíoóöuúünñ'
-    assert normalize(weird, chars_dict) == '01ioun'
+    assert normalize(weird, chars_dict) == '0011iiooouuunn'
 
 
 def test_normalize_extra_chars_string():
@@ -141,7 +141,9 @@ def test_normalize_extra_chars_string():
     a string.
     """
     weird = 'aáeéiíoóöuúünñ'
-    assert normalize(weird, 'iou', '3') == 'ae333n'
+    assert normalize(weird, 'o', '4') == 'aaeeii444uuunn'
+    assert normalize(weird, 'iu', '3') == 'aaee33ooo333nn'
+    assert normalize(weird, 'n', '99') == 'aaeeiiooouuu9999'
 
 
 def test_id_source_mappings():
