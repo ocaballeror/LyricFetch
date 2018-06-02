@@ -88,29 +88,38 @@ def get_soup(url):
     return BeautifulSoup(response.read(), 'html.parser')
 
 
-def get_lastfm(method, **kwargs):
+def get_lastfm(method, lastfm_key='', **kwargs):
     """
     Request the specified method from the lastfm api.
     """
-    if 'lastfm_key' not in CONFIG or not CONFIG['lastfm_key']:
-        logger.warning('No lastfm key configured')
-        return ''
+    if not lastfm_key:
+        if 'lastfm_key' not in CONFIG or not CONFIG['lastfm_key']:
+            logger.warning('No lastfm key configured')
+            return ''
+        else:
+            lastfm_key = CONFIG['lastfm_key']
 
     url = 'http://ws.audioscrobbler.com/2.0/?method={}&api_key={}&format=json'
-    url = url.format(method, CONFIG['lastfm_key'])
+    url = url.format(method, lastfm_key)
     for key in kwargs:
         url += '&{}={}'.format(key, kwargs[key])
 
-    url = request.quote(url)
+    url = request.quote(url, safe=':/?=%&')
     logger.debug('LASTFM URL: %s', url)
     req = request.Request(url)
     try:
         response = request.urlopen(req)
     except URLError:
-        logger.error('URLError when requesting from LAST.fm')
+        logger.error('URLError when requesting from LAST.fm: %s', url)
         return ''
 
-    return json.loads(response.read())
+    response = json.loads(response.read())
+    if 'error' in response:
+        logger.error('Error number %d in lastfm query: %s',
+                     response['error'], response['message'])
+        return ''
+
+    return response
 
 
 # Contains the characters usually removed or replaced in URLS
@@ -272,7 +281,7 @@ def metalarchives(song):
 
     url = 'https://www.metal-archives.com/search/ajax-advanced/searching/songs'
     url += f'/?songTitle={title}&bandName={artist}&ExactBandMatch=1'
-    soup = get_soup(url, safe=':/?=&')
+    soup = get_soup(url)
     if not soup:
         return ''
 

@@ -1,19 +1,37 @@
 """
 Main tests module.
 """
-import pytest
+import json
+import os
 import sys
+import pytest
 
 sys.path.append('..')
-from lyrics import get_soup
+from lyrics import Song
+from lyrics import exclude_sources
 from lyrics import get_lastfm
+from lyrics import get_lyrics
+from lyrics import get_soup
+from lyrics import id_source
+from lyrics import load_config
 from lyrics import normalize
 from lyrics import sources
-from lyrics import id_source
-from lyrics import exclude_sources
-from lyrics import Song
-from lyrics import get_lyrics
 
+
+config_file = '../config.json'
+skip_lastfm = pytest.mark.skipif(not os.path.isfile(config_file),
+                                 reason='No configuration file')
+
+
+@pytest.fixture(scope='session')
+def lastfm_key():
+    with open(config_file) as conffile:
+        config = json.load(conffile)
+        key = config['lastfm_key']
+    if key == '':
+        raise RuntimeError('No lastfm key configured')
+    CONFIG['lastfm_key'] = key
+    return key
 
 def test_soup():
     """
@@ -38,33 +56,46 @@ def test_get_soup_tlsv1():
     assert soup.get_text() != ""
 
 
-def test_get_lastfm():
+@skip_lastfm
+def test_get_lastfm(lastfm_key):
     """
     The `get_lastfm` function should return a json object with the response
     from the method requested.
     """
-    track = get_lastfm('track.getInfo', artist="Metallica", title="Master of"
-                       "puppets")
+    track = get_lastfm('track.getInfo', lastfm_key=lastfm_key,
+                       artist="Metallica", track="Master of puppets")
     assert 'track' in track
     assert 'name' in track['track']
     assert 'artist' in track['track']
     assert 'album' in track['track']
 
 
+@skip_lastfm
 def test_get_lastfm_wrong_key():
     """
-    `get_lastfm` should fail and return an empty string if they key is invalid.
+    `get_lastfm` should fail if they key is invalid.
     """
-    empty = get_lastfm('track.getInfo', asdfasdf='asdfasdf')
-    assert empty == ''
+    with pytest.raises(HTTPError):
+        get_lastfm('track.getInfo', lastfm_key='asdfasdf')
 
 
-def test_get_lastfm_wrong_method():
+@skip_lastfm
+def test_get_lastfm_wrong_method(lastfm_key):
     """
-    `get_lastfm` should fail and return an empty string if the method requested
-    is invalid.
+    `get_lastfm` should fail if the method requested is invalid.
     """
-    empty = get_lastfm('asdfasdf')
+    with pytest.raises(HTTPError):
+        get_lastfm('asdfasdf', lastfm_key=lastfm_key)
+
+
+@skip_lastfm
+def test_get_lastfm_wrong_arguments(lastfm_key):
+    """
+    `get_lastfm` should fail and return an empty string if they arguments to
+    the method are invalid.
+    """
+    empty = get_lastfm('track.getInfo', lastfm_key=lastfm_key,
+                       asdfasdf='asdfasdf')
     assert empty == ''
 
 
