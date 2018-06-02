@@ -163,7 +163,7 @@ def test_exclude_sources_callable():
     """
     last_source = sources[-1]
     newlist = exclude_sources(last_source)
-    assert newlist + [last_source] == sources
+    assert newlist == sources[:-1]
 
 
 def test_exclude_sources_str():
@@ -173,7 +173,7 @@ def test_exclude_sources_str():
     """
     last_source = sources[-1]
     newlist = exclude_sources(last_source.__name__)
-    assert newlist + [last_source] == sources
+    assert newlist == sources[:-1]
 
 
 def test_exclude_sources_list_callable():
@@ -183,7 +183,7 @@ def test_exclude_sources_list_callable():
     """
     last_sources = sources[-2:]
     newlist = exclude_sources(last_sources)
-    assert newlist + last_sources == sources
+    assert newlist == sources[:-2]
 
 
 def test_exclude_sources_list_str():
@@ -191,17 +191,16 @@ def test_exclude_sources_list_str():
     Check that sources are correctly excluded from the main list when passing a
     list of strings.
     """
-    last_sources = sources[-2:]
-    newlist = exclude_sources(map(lambda f: f.__name__, last_sources))
-    assert newlist + last_sources == sources
+    last_sources = list(map(lambda f: f.__name__, sources[-2:]))
+    newlist = exclude_sources(last_sources)
+    assert newlist == sources[:-2]
 
 
 def test_exclude_sources_section_callable():
     """
     Check that sources are correctly excluded from the main list .
     """
-    second_to_last = sources[-2]
-    newlist = exclude_sources(second_to_last, section=True)
+    newlist = exclude_sources(sources[-2], section=True)
     assert newlist == sources[-2:]
 
 
@@ -209,8 +208,7 @@ def test_exclude_sources_section_str():
     """
     Check that sources are correctly excluded from the main list .
     """
-    second_to_last = sources[-2]
-    newlist = exclude_sources(second_to_last.__name__, section=True)
+    newlist = exclude_sources(sources[-2].__name__, section=True)
     assert newlist == sources[-2:]
 
 

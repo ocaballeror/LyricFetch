@@ -933,31 +933,40 @@ def exclude_sources(exclude, section=False):
     everything between 'exclude' and the end of the list.
     """
     newlist = sources.copy()
-    if isinstance(exclude, list):
-        newlist = sources
-        for source in exclude:
-            if source in newlist:
-                newlist = newlist.remove(source)
-    elif callable(exclude):
-        if not section:
-            newlist = newlist.remove(exclude)
-        else:
-            if exclude in newlist:
-                pos = newlist.index(exclude)
-                newlist = sources[pos:]
-    elif isinstance(exclude, str):
-        this_module = importlib.import_module(__name__)
-        if hasattr(this_module, exclude):
-            func = getattr(this_module, exclude)
-            logger.debug('Using new source %s', func.__name__)
-            if not section:
-                newlist = newlist.remove(exclude)
-            else:
-                if func in newlist:
-                    pos = newlist.index(func)
-                    newlist = sources[pos+1:]
+    if not isinstance(exclude, list):
+        exclude = [exclude]
 
+    for source in exclude:
+        if callable(source):
+            newlist = _exclude_callable(source, newlist, section)
+        if isinstance(source, str):
+            newlist = _exclude_string(source, newlist, section)
     return newlist
+
+
+def _exclude_callable(func, s_list, section):
+    """
+    Exclude a function from a list of sources.
+    """
+    if not section:
+        s_list.remove(func)
+    else:
+        pos = s_list.index(func)
+        s_list = sources[pos:]
+    return s_list
+
+
+def _exclude_string(name, s_list, section):
+    """
+    Exclude a function (specified by name) from a list of sources.
+    """
+    this_module = importlib.import_module(__name__)
+    if hasattr(this_module, name):
+        func = getattr(this_module, name)
+        logger.debug('Using new source %s', func.__name__)
+        s_list = _exclude_callable(func, s_list, section)
+
+    return s_list
 
 
 def get_lyrics(song, l_sources=None):
