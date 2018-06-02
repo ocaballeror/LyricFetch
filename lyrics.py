@@ -35,11 +35,10 @@ from queue import Queue
 
 import urllib.request as request
 from urllib.error import URLError, HTTPError
-
-import eyed3
-
 from http.client import HTTPException
 from multiprocessing import Pool
+
+import eyed3
 from bs4 import BeautifulSoup
 
 
@@ -57,26 +56,27 @@ logger.setLevel(logging.INFO)
 # logger.addHandler(errlogger)
 
 # Discard eyed3 messages unless they're important
-logging.getLogger("eyed3.mp3.headers").setLevel(logging.CRITICAL)
+logging.getLogger('eyed3.mp3.headers').setLevel(logging.CRITICAL)
 
 CONFFILE = './config.json'
 CONFIG = {
-        'jobcount': 1,
-        'overwrite': False,
-        'errno': 0,
-        'print_stats': False,
-        'debug': False,
-        'lastfm_key': ''
+    'jobcount': 1,
+    'overwrite': False,
+    'errno': 0,
+    'print_stats': False,
+    'debug': False,
+    'lastfm_key': ''
 }
 
-def get_soup(url, safe=":/"):
+
+def get_soup(url, safe=':/'):
     """
     Requests the specified url and returns a BeautifulSoup object with its
     contents.
     """
     url = request.quote(url, safe=safe)
     logger.debug('URL: %s', url)
-    req = request.Request(url, headers={"User-Agent": "foobar"})
+    req = request.Request(url, headers={'User-Agent': 'foobar'})
     try:
         response = request.urlopen(req)
     except (ssl.SSLError, URLError):
@@ -88,6 +88,7 @@ def get_soup(url, safe=":/"):
 
     return BeautifulSoup(response.read(), 'html.parser')
 
+
 def get_lastfm(method, **kwargs):
     """
     Request the specified method from the lastfm api.
@@ -96,9 +97,8 @@ def get_lastfm(method, **kwargs):
         logger.warning('No lastfm key configured')
         return ''
 
-    url = "http://ws.audioscrobbler.com/2.0/?method={}&api_key={}&format=json".format(
-            method,
-            CONFIG['lastfm_key'])
+    url = 'http://ws.audioscrobbler.com/2.0/?method={}&api_key={}&format=json'
+    url = url.format(method, CONFIG['lastfm_key'])
     for key in kwargs:
         url += '&{}={}'.format(key, kwargs[key])
 
@@ -113,21 +113,22 @@ def get_lastfm(method, **kwargs):
 
     return json.loads(response.read())
 
+
 # Contains the characters usually removed or replaced in URLS
-URLESCAPE = ".¿?%_@,;&\\/()'\"-!¡"
+URLESCAPE = '.¿?%_@,;&\\/()\'"-!¡'
 URLESCAPES = URLESCAPE + ' '
+
 
 def normalize(string, chars_to_remove=None, replacement=''):
     """
     Remove accented characters and such.
 
-    The argument charsToRemove is a dictionary that maps a string of chars
-    to a single character. Every ocurrence of every character in the first
-    string will be replaced by that second charcter passed as value. If only
-    one mapping is desired, charsToRemove may be a single string, but a third
+    The argument chars_to_remove is a dictionary that maps a string of chars to
+    a single character. Every ocurrence of every character in the first string
+    will be replaced by that second charcter passed as value. If only one
+    mapping is desired, chars_to_remove may be a single string, but a third
     parameter, replacement, must be provided to complete the translation.
     """
-
     ret = string.translate(str.maketrans({
         'á': 'a',
         'ä': 'a',
@@ -143,21 +144,22 @@ def normalize(string, chars_to_remove=None, replacement=''):
 
     if isinstance(chars_to_remove, dict):
         for chars, replace in chars_to_remove.items():
-            reg = "["+re.escape(chars)+"]"
+            reg = '[' + re.escape(chars) + ']'
             ret = re.sub(reg, replace, ret)
 
     elif isinstance(chars_to_remove, str):
-        reg = '['+re.escape(chars_to_remove)+']'
+        reg = '[' + re.escape(chars_to_remove) + ']'
         ret = re.sub(reg, replacement, ret)
 
     return ret
+
 
 def metrolyrics(song):
     """
     Returns the lyrics found in metrolyrics for the specified mp3 file or an
     empty string if not found.
     """
-    translate = {URLESCAPE: "", " ":"-"}
+    translate = {URLESCAPE: '', ' ': '-'}
     title = song.title.lower()
     title = normalize(title, translate)
     title = re.sub(r'\-{2,}', '-', title)
@@ -165,19 +167,20 @@ def metrolyrics(song):
     artist = normalize(artist, translate)
     artist = re.sub(r'\-{2,}', '-', artist)
 
-    url = "http://www.metrolyrics.com/{}-lyrics-{}.html".format(title, artist)
+    url = 'http://www.metrolyrics.com/{}-lyrics-{}.html'.format(title, artist)
     soup = get_soup(url)
-    body = soup.find(id="lyrics-body-text")
+    body = soup.find(id='lyrics-body-text')
     if body is None:
-        return ""
+        return ''
 
-    text = ""
+    text = ''
     verses = body.find_all('p')
     for verse in verses:
         text += verse.get_text().strip()
         text += '\n\n'
 
     return text.strip()
+
 
 def darklyrics(song):
     """
@@ -191,7 +194,7 @@ def darklyrics(song):
         if not hasattr(song, 'album') or not song.album:
             # If we don't have the name of the album, there's nothing we can do
             # on darklyrics
-            return ""
+            return ''
 
     artist = song.artist.lower()
     artist = normalize(artist, URLESCAPES, '')
@@ -199,20 +202,21 @@ def darklyrics(song):
     album = normalize(album, URLESCAPES, '')
     title = song.title
 
-    url = "http://www.darklyrics.com/lyrics/{}/{}.html".format(artist, album)
+    url = 'http://www.darklyrics.com/lyrics/{}/{}.html'.format(artist, album)
     soup = get_soup(url)
-    text = ""
+    text = ''
     for header in soup.find_all('h3'):
         song = str(header.get_text())
         next_sibling = header.next_sibling
         if song.lower().find(title.lower()) != -1:
-            while next_sibling is not None and (next_sibling.name is None\
-                or next_sibling.name != 'h3'):
+            while next_sibling is not None and\
+                  (next_sibling.name is None or next_sibling.name != 'h3'):
                 if next_sibling.name is None:
                     text += str(next_sibling)
                 next_sibling = next_sibling.next_sibling
 
     return text.strip()
+
 
 def azlyrics(song):
     """
@@ -220,16 +224,17 @@ def azlyrics(song):
     string if not found.
     """
     artist = song.artist.lower()
-    if artist[0:2] == "a ":
+    if artist[0:2] == 'a ':
         artist = artist[2:]
-    artist = normalize(artist, URLESCAPES, "")
+    artist = normalize(artist, URLESCAPES, '')
     title = song.title.lower()
-    title = normalize(title, URLESCAPES, "")
+    title = normalize(title, URLESCAPES, '')
 
-    url = "https://www.azlyrics.com/lyrics/{}/{}.html".format(artist, title)
+    url = 'https://www.azlyrics.com/lyrics/{}/{}.html'.format(artist, title)
     soup = get_soup(url)
-    body = soup.find_all('div', class_="")[-1]
+    body = soup.find_all('div', class_='')[-1]
     return body.get_text().strip()
+
 
 def genius(song):
     """
@@ -247,7 +252,7 @@ def genius(song):
     title = song.title.capitalize()
     title = normalize(title, translate)
 
-    url = "https://www.genius.com/{}-{}-lyrics".format(artist, title)
+    url = 'https://www.genius.com/{}-{}-lyrics'.format(artist, title)
     soup = get_soup(url)
     for content in soup.find_all('p'):
         if content:
@@ -257,6 +262,7 @@ def genius(song):
 
     return ''
 
+
 def metalarchives(song):
     """
     Returns the lyrics found in MetalArchives for the specified mp3 file or an
@@ -265,11 +271,11 @@ def metalarchives(song):
     artist = normalize(song.artist)
     title = normalize(song.title)
 
-    url = "https://www.metal-archives.com/search/ajax-advanced/searching/songs/"
-    url += f"?songTitle={title}&bandName={artist}&ExactBandMatch=1"
+    url = 'https://www.metal-archives.com/search/ajax-advanced/searching/songs'
+    url += f'/?songTitle={title}&bandName={artist}&ExactBandMatch=1'
     soup = get_soup(url, safe=':/?=&')
     if not soup:
-        return ""
+        return ''
 
     ids = []
     song_id_re = re.compile(r'lyricsLink_([0-9]*)')
@@ -279,16 +285,18 @@ def metalarchives(song):
             ids.append(song_id.group(1))
 
     if not ids:
-        return ""
+        return ''
 
     for song_id in ids:
-        url = "https://www.metal-archives.com/release/ajax-view-lyrics/id/{}".format(song_id)
+        url = 'https://www.metal-archives.com/release/ajax-view-lyrics/id/{}'
+        url = url.format(song_id)
         soup = get_soup(url)
         text = soup.get_text()
         if not re.search('lyrics not available', text):
             return text.strip()
 
-    return ""
+    return ''
+
 
 def lyricswikia(song):
     """
@@ -300,12 +308,12 @@ def lyricswikia(song):
     title = song.title
     title = normalize(title, ' ', '_')
 
-    url = "https://lyrics.wikia.com/wiki/{}:{}".format(artist, title)
+    url = 'https://lyrics.wikia.com/wiki/{}:{}'.format(artist, title)
     soup = get_soup(url)
-    text = ""
+    text = ''
     content = soup.find('div', class_='lyricbox')
     if not content:
-        return ""
+        return ''
 
     for unformat in content.findChildren(['i', 'b']):
         unformat.unwrap()
@@ -316,7 +324,7 @@ def lyricswikia(song):
     for line in content.children:
         if line is None or line == '<br/>' or line == '\n':
             if nlcount == 2:
-                text += "\n\n"
+                text += '\n\n'
                 nlcount = 0
             else:
                 nlcount += 1
@@ -325,6 +333,7 @@ def lyricswikia(song):
             text += str(line).replace('<br/>', '\n')
     return text.strip()
 
+
 def musixmatch(song):
     """
     Returns the lyrics found in musixmatch for the specified mp3 file or an
@@ -332,24 +341,24 @@ def musixmatch(song):
     """
     escape = re.sub("'-¡¿", '', URLESCAPE)
     translate = {
-        escape: "",
-        " ": "-"
+        escape: '',
+        ' ': '-'
     }
     artist = song.artist.title()
-    artist = re.sub(r"( '|' )", "", artist)
-    artist = re.sub(r"'", "-", artist)
+    artist = re.sub(r"( '|' )", '', artist)
+    artist = re.sub(r"'", '-', artist)
     title = song.title
-    title = re.sub(r"( '|' )", "", title)
-    title = re.sub(r"'", "-", title)
+    title = re.sub(r"( '|' )", '', title)
+    title = re.sub(r"'", '-', title)
 
     artist = normalize(artist, translate)
     artist = re.sub(r'\-{2,}', '-', artist)
     title = normalize(title, translate)
     title = re.sub(r'\-{2,}', '-', title)
 
-    url = "https://www.musixmatch.com/lyrics/{}/{}".format(artist, title)
+    url = 'https://www.musixmatch.com/lyrics/{}/{}'.format(artist, title)
     soup = get_soup(url)
-    text = ""
+    text = ''
     contents = soup.find_all('p', class_='mxm-lyrics__content ')
     for p in contents:
         text += p.get_text().strip()
@@ -357,6 +366,7 @@ def musixmatch(song):
             text += '\n\n'
 
     return text.strip()
+
 
 # Songlyrics is basically a mirror for musixmatch, so it helps us getting
 # around musixmatch's bot detection (they block IPs pretty easily)
@@ -366,8 +376,8 @@ def songlyrics(song):
     empty string if not found.
     """
     translate = {
-        URLESCAPE: "",
-        " ": "-"
+        URLESCAPE: '',
+        ' ': '-'
     }
     artist = song.artist.lower()
     artist = normalize(artist, translate)
@@ -377,17 +387,18 @@ def songlyrics(song):
     artist = re.sub(r'\-{2,}', '-', artist)
     title = re.sub(r'\-{2,}', '-', title)
 
-    url = "http://www.songlyrics.com/{}/{}-lyrics".format(artist, title)
+    url = 'http://www.songlyrics.com/{}/{}-lyrics'.format(artist, title)
     soup = get_soup(url)
     text = soup.find(id='songLyricsDiv')
     if not text:
-        return ""
+        return ''
 
     text = text.getText().strip()
     if not text or text.lower().startswith('we do not have the lyrics for'):
-        return ""
+        return ''
 
     return text
+
 
 def lyricscom(song):
     """
@@ -395,26 +406,27 @@ def lyricscom(song):
     empty string if not found.
     """
     artist = song.artist.lower()
-    artist = normalize(artist, " ", "+")
+    artist = normalize(artist, ' ', '+')
     title = song.title
 
-    url = "https://www.lyrics.com/artist/{}".format(artist)
+    url = 'https://www.lyrics.com/artist/{}'.format(artist)
     soup = get_soup(url)
-    location = ""
+    location = ''
     for a in soup.select('tr a'):
         if a.string.lower() == title.lower():
             location = a['href']
             break
-    if location == "":
-        return ""
+    if location == '':
+        return ''
 
-    url = "https://www.lyrics.com"+location
+    url = 'https://www.lyrics.com' + location
     soup = get_soup(url)
-    body = soup.find(id="lyric-body-text")
+    body = soup.find(id='lyric-body-text')
     if not body:
-        return ""
+        return ''
 
     return body.get_text().strip()
+
 
 def vagalume(song):
     """
@@ -433,11 +445,11 @@ def vagalume(song):
     title = normalize(title, translate)
     title = re.sub(r'\-{2,}', '-', title)
 
-    url = "https://www.vagalume.com.br/{}/{}.html".format(artist, title)
+    url = 'https://www.vagalume.com.br/{}/{}.html'.format(artist, title)
     soup = get_soup(url)
     body = soup.select('div[itemprop="description"]')
     if body == []:
-        return ""
+        return ''
 
     content = body[0]
     for br in content.find_all('br'):
@@ -445,14 +457,15 @@ def vagalume(song):
 
     return content.get_text().strip()
 
+
 def lyricsmode(song):
     """
     Returns the lyrics found in lyricsmode.com for the specified mp3 file or an
     empty string if not found.
     """
     translate = {
-        URLESCAPE: "",
-        " ": "_"
+        URLESCAPE: '',
+        ' ': '_'
     }
     artist = song.artist.lower()
     artist = normalize(artist, translate)
@@ -462,7 +475,7 @@ def lyricsmode(song):
     artist = re.sub(r'\_{2,}', '_', artist)
     title = re.sub(r'\_{2,}', '_', title)
 
-    if artist[0:4].lower() == "the ":
+    if artist[0:4].lower() == 'the ':
         artist = artist[4:]
 
     if artist[0:2].lower() == 'a ':
@@ -470,12 +483,13 @@ def lyricsmode(song):
     else:
         prefix = artist[0]
 
-    url = "http://www.lyricsmode.com/lyrics/{}/{}/{}.html".format(prefix,
-            artist, title)
+    url = 'http://www.lyricsmode.com/lyrics/{}/{}/{}.html'
+    url = url.format(prefix, artist, title)
     soup = get_soup(url)
-    content = soup.find(id="lyrics_text")
+    content = soup.find(id='lyrics_text')
 
     return content.get_text().strip()
+
 
 def letras(song):
     """
@@ -483,36 +497,36 @@ def letras(song):
     empty string if not found.
     """
     translate = {
-        "&": "a",
-        URLESCAPE: "",
-        " ": "-"
+        '&': 'a',
+        URLESCAPE: '',
+        ' ': '-'
     }
     artist = song.artist.lower()
     artist = normalize(artist, translate)
     title = song.title.lower()
     title = normalize(title, translate)
 
-    url = "https://www.letras.com/{}/{}/".format(artist, title)
+    url = 'https://www.letras.com/{}/{}/'.format(artist, title)
     soup = get_soup(url)
     if not soup:
-        return ""
+        return ''
 
     found_title = soup.select_one('div.cnt-head_title h1')
     if not found_title:
         # The site didn't find lyrics and took us to the homepage
-        return ""
+        return ''
 
     found_title = found_title.get_text()
     found_title = re.sub(r'[\W_]+', '', found_title.lower())
     if found_title != re.sub(r'[\W_]+', '', song.title.lower()):
         # The site took us to the wrong song page
-        return ""
+        return ''
 
     content = soup.find('article')
     if not content:
-        return ""
+        return ''
 
-    text = ""
+    text = ''
     for br in content.find_all('br'):
         br.replace_with('\n')
 
@@ -538,31 +552,33 @@ sources = [
 ]
 
 source_ids = {
-    azlyrics: ("AZL", "AZLyrics.com"),
-    metrolyrics: ("MET", "Metrolyrics.com"),
-    lyricswikia: ("WIK", "Lyrics.wikia.com"),
-    darklyrics: ("DAR", "Darklyrics.com"),
-    metalarchives: ("ARC", "Metal-archives.com"),
-    genius: ("GEN", "Genius.com"),
-    musixmatch: ("XMA", "Musixmatch.com"),
-    songlyrics: ("SON", "SongLyrics.com"),
-    vagalume: ("VAG", "Vagalume.com.br"),
-    letras: ("LET", "Letras.com"),
-    lyricsmode: ("LYM", "Lyricsmode.com"),
-    lyricscom: ("LYC", "Lyrics.com"),
+    azlyrics: ('AZL', 'AZLyrics.com'),
+    metrolyrics: ('MET', 'Metrolyrics.com'),
+    lyricswikia: ('WIK', 'Lyrics.wikia.com'),
+    darklyrics: ('DAR', 'Darklyrics.com'),
+    metalarchives: ('ARC', 'Metal-archives.com'),
+    genius: ('GEN', 'Genius.com'),
+    musixmatch: ('XMA', 'Musixmatch.com'),
+    songlyrics: ('SON', 'SongLyrics.com'),
+    vagalume: ('VAG', 'Vagalume.com.br'),
+    letras: ('LET', 'Letras.com'),
+    lyricsmode: ('LYM', 'Lyricsmode.com'),
+    lyricscom: ('LYC', 'Lyrics.com'),
 }
+
 
 def id_source(source, full=False):
     """
     Returns the name of a website-scrapping function.
     """
     if source not in source_ids:
-        return ""
+        return ''
 
     if full:
         return source_ids[source][1]
     else:
         return source_ids[source][0]
+
 
 class Record:
     """
@@ -579,10 +595,10 @@ class Record:
         return self.__repr__()
 
     def __repr__(self):
-        return f"""Successes: {self.successes}
+        return f'''Successes: {self.successes}
 Fails: {self.fails}
 Success rate: {self.success_rate():.2f}%
-Average runtime: {Record.avg(self.runtimes):.2f}s"""
+Average runtime: {Record.avg(self.runtimes):.2f}s'''
 
     def add_runtime(self, runtime):
         """
@@ -607,11 +623,14 @@ Average runtime: {Record.avg(self.runtimes):.2f}s"""
 
     @staticmethod
     def avg(values):
-        """Returns the average of a list of numbers."""
+        """
+        Returns the average of a list of numbers.
+        """
         if values == []:
             return 0
         else:
             return sum(values)/len(values)
+
 
 class Stats:
     """
@@ -687,17 +706,14 @@ class Stats:
             found += rec.successes
             total_time += sum(rec.runtimes)
 
-        # best_source = max([rec.successes for rec in self.source_stats.values()])
-        # fastest_source = min([self.avg_time(source) for source in sources])
-        # found = sum([rec.successes for rec in self.source_stats.values()])
-        # total_time = sum([sum(rec.runtimes) for rec in self.source_stats.values()])
-
         # The songs which lyrics were not found, will be the number of fails
         # for the last source in the list
         notfound = self.source_stats[sources[-1].__name__].fails
 
-        total_time = "%d:%02d:%02d" % (total_time/3600, (total_time/3600)/60, (total_time%3600)%60)
-        string = f"""Total runtime: {total_time}
+        total_time = '%d:%02d:%02d' % (total_time / 3600,
+                                       (total_time / 3600) / 60,
+                                       (total_time % 3600) % 60)
+        string = f'''Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
     Most useful source: {best[0].capitalize()} ({best[1]} lyrics found)\
@@ -711,12 +727,13 @@ class Stats:
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 xxx    PER WEBSITE STATS:      xxx
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    """
+    '''
         for source in sources:
             stat = str(self.source_stats[source.__name__])
-            string += f"\n{source.__name__.upper()}\n{stat}\n"
+            string += f'\n{source.__name__.upper()}\n{stat}\n'
 
         print(string)
+
 
 class Song:
     """
@@ -730,21 +747,21 @@ class Song:
     depending on the use case.
     """
     def __init__(self):
-        self.artist = ""
-        self.title = ""
-        self.album = ""
-        self.lyrics = ""
+        self.artist = ''
+        self.title = ''
+        self.album = ''
+        self.lyrics = ''
 
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
         if self.artist and self.title and not hasattr(self, 'filename'):
-            return f"{self.artist} - {self.title}"
+            return f'{self.artist} - {self.title}'
         elif self.filename:
             return self.filename
         else:
-            return ""
+            return ''
 
     @classmethod
     def from_filename(cls, filename):
@@ -754,7 +771,7 @@ class Song:
         must at least contain valid ID3 tags for artist and title.
         """
         if not filename:
-            logger.error("No filename specified")
+            logger.error('No filename specified')
             return None
 
         if not os.path.exists(filename):
@@ -767,7 +784,7 @@ class Song:
 
         try:
             audiofile = eyed3.load(filename)
-        except Exception as e:
+        except Exception:
             return None
 
         # Sometimes eyed3 may return a null object and not raise any exceptions
@@ -789,7 +806,7 @@ class Song:
         return song
 
     @classmethod
-    def from_info(cls, artist, title, album=""):
+    def from_info(cls, artist, title, album=''):
         """
         Class constructor to create a Song object by directly specifying the
         metadata.
@@ -798,7 +815,7 @@ class Song:
         song.__init__()
 
         if not artist or not title:
-            logger.error("Incomplete song info")
+            logger.error('Incomplete song info')
             return None
 
         song.artist = artist
@@ -840,7 +857,7 @@ class Song:
         Get the name of the album from lastfm.
         """
         response = get_lastfm('track.getInfo', artist=self.artist,
-                track=self.title)
+                              track=self.title)
         if response:
             try:
                 self.album = response['track']['album']['title']
@@ -947,7 +964,7 @@ def get_lyrics(song, l_sources=None):
         l_sources = sources
 
     if song.lyrics and not CONFIG['overwrite']:
-        logger.debug("%s already has embedded lyrics", song)
+        logger.debug('%s already has embedded lyrics', song)
         return None
 
     runtimes = {}
@@ -965,7 +982,7 @@ def get_lyrics(song, l_sources=None):
             break
 
     if lyrics != '':
-        logger.info("++ %s: Found lyrics for %s\n", source.__name__, song)
+        logger.info('++ %s: Found lyrics for %s\n', source.__name__, song)
         song.lyrics = lyrics
     else:
         logger.info("Couldn't find lyrics for %s\n", song)
@@ -985,7 +1002,7 @@ def get_lyrics_threaded(song, l_sources=None):
         l_sources = sources
 
     if song.lyrics and not CONFIG['overwrite']:
-        logger.debug("%s already has embedded lyrics", song)
+        logger.debug('%s already has embedded lyrics', song)
         return None
 
     runtimes = {}
@@ -1024,17 +1041,18 @@ def process_result(result):
             audiofile = eyed3.load(result.song.filename)
             audiofile.tag.lyrics.set(u''+result.song.lyrics)
             audiofile.tag.save()
-            print(f"{id_source(result.source)} Lyrics added for {result.song}")
+            print(f'{id_source(result.source)} Lyrics added for {result.song}')
         else:
-            print(f"""FROM {id_source(result.source, full=True)}
+            print(f'''FROM {id_source(result.source, full=True)}
 
 {result.song.lyrics}
 -----------------------------------------------------------------------------\
-""")
+''')
     else:
-        print(f"Lyrics for {result.song} not found")
+        print(f'Lyrics for {result.song} not found')
 
     return found
+
 
 def run(songs):
     """
@@ -1057,7 +1075,7 @@ def run_mp(songs):
         good = open('found', 'w')
         bad = open('notfound', 'w')
 
-    logger.debug("Launching a pool of %d processes\n", CONFIG['jobcount'])
+    logger.debug('Launching a pool of %d processes\n', CONFIG['jobcount'])
     chunksize = math.ceil(len(songs)/os.cpu_count())
     try:
         with Pool(CONFIG['jobcount']) as pool:
@@ -1071,7 +1089,7 @@ def run_mp(songs):
                 found = process_result(result)
                 if CONFIG['debug']:
                     if found:
-                        good.write(f"{id_source(source)}: {result.song}\n")
+                        good.write(f'{id_source(source)}: {result.song}\n')
                         good.flush()
                     else:
                         bad.write(str(result.song)+'\n')
@@ -1084,14 +1102,18 @@ def run_mp(songs):
 
     return stats
 
+
 def load_config():
-    """Load the configuration file."""
+    """
+    Load the configuration file.
+    """
     try:
         with open(CONFFILE, 'r') as conffile:
             CONFIG.update(json.load(conffile))
     except Exception:
         logger.warning('Could not load configuration file')
         logger.debug(CONFIG)
+
 
 def load_from_file(filename):
     """
@@ -1118,6 +1140,7 @@ def load_from_file(filename):
         logger.exception(error)
         return None
 
+
 def parseargv():
     """
     Parse command line arguments. Settings will be stored in the global
@@ -1125,28 +1148,28 @@ def parseargv():
     """
     global errno
 
-    parser = argparse.ArgumentParser(description="Find lyrics for a set of mp3"
-            " files and embed them as metadata")
-    parser.add_argument("-j", "--jobs", help="Number of parallel processes", type=int,
-            metavar="N", default=1)
-    parser.add_argument("-f", "--force", help="Confirm the use of too many processes",
-            action="store_true")
-    parser.add_argument("-o", "--overwrite", help="Overwrite lyrics of songs"
-            " that already have them", action="store_true")
-    parser.add_argument("-r", "--recursive", help="Recursively search for"
-            " mp3 files", nargs='?', const='.')
-    parser.add_argument("-n", "--by-name", help="A list of song names in"
+    parser = argparse.ArgumentParser(description='Find lyrics for a set of mp3'
+            ' files and embed them as metadata')
+    parser.add_argument('-j', '--jobs', help='Number of parallel processes', type=int,
+            metavar='N', default=1)
+    parser.add_argument('-f', '--force', help='Confirm the use of too many processes',
+            action='store_true')
+    parser.add_argument('-o', '--overwrite', help='Overwrite lyrics of songs'
+            ' that already have them', action='store_true')
+    parser.add_argument('-r', '--recursive', help='Recursively search for'
+            ' mp3 files', nargs='?', const='.')
+    parser.add_argument('-n', '--by-name', help='A list of song names in'
             " 'artist - title' format", nargs='*')
-    parser.add_argument("-s", "--stats", help="Print a series of statistics at"
-            " the end of the execution", action="store_true")
-    parser.add_argument("-v", "--verbose", help="Set verbosity level (pass it"
-            " up to three times)", action="count")
-    parser.add_argument("-d", "--debug", help="Enable debug output",
-            action="store_true")
-    parser.add_argument("--from-file", help="Read a list of files from a text"
-            " file", type=str)
-    parser.add_argument("files", help="The mp3 files to search lyrics for",
-            nargs="*")
+    parser.add_argument('-s', '--stats', help='Print a series of statistics at'
+            ' the end of the execution', action='store_true')
+    parser.add_argument('-v', '--verbose', help='Set verbosity level (pass it'
+            ' up to three times)', action='count')
+    parser.add_argument('-d', '--debug', help='Enable debug output',
+            action='store_true')
+    parser.add_argument('--from-file', help='Read a list of files from a text'
+            ' file', type=str)
+    parser.add_argument('files', help='The mp3 files to search lyrics for',
+            nargs='*')
     args = parser.parse_args()
 
     CONFIG['overwrite'] = args.overwrite
@@ -1161,14 +1184,14 @@ def parseargv():
 
     if args.jobs:
         if args.jobs > os.cpu_count() and not args.force:
-            logger.error("You specified a number of parallel threads"
-            " greater than the number of processors in your system. To continue"
-            " at your own risk you must confirm you choice with -f")
+            logger.error('You specified a number of parallel threads'
+            ' greater than the number of processors in your system. To continue'
+            ' at your own risk you must confirm you choice with -f')
             errno = os.errno.EINVAL
             return None
         elif args.jobs <= 0:
-            logger.error("%s: error: argument -j/--jobs should"
-            " have a value greater than zero", sys.argv[0])
+            logger.error('%s: error: argument -j/--jobs should'
+                         ' have a value greater than zero', sys.argv[0])
             errno = os.errno.EINVAL
             return None
         else:
@@ -1180,7 +1203,7 @@ def parseargv():
         if args.files:
             mp3files = args.files
         elif args.recursive:
-            mp3files = glob.iglob(args.recursive+"/**/*.mp3", recursive=True)
+            mp3files = glob.iglob(args.recursive+'/**/*.mp3', recursive=True)
         elif args.from_file:
             if not os.path.isfile(args.from_file):
                 errno = os.errno.ENOENT
@@ -1194,8 +1217,8 @@ def parseargv():
                 return None
 
         else:
-            logger.error("Err: No files specified")
-            sys.stderr.write("Err: No files specified\n")
+            logger.error('Err: No files specified')
+            sys.stderr.write('Err: No files specified\n')
             errno = os.errno.EINVAL
             return None
 
@@ -1206,6 +1229,7 @@ def parseargv():
 
     # Just in case some song constructors failed, remove all the Nones
     return songs.difference({None})
+
 
 def main():
     """
@@ -1219,7 +1243,7 @@ def main():
         print('No songs specified')
         return 0
 
-    logger.debug("Running with %s", songs)
+    logger.debug('Running with %s', songs)
 
     load_config()
     try:
@@ -1232,14 +1256,16 @@ def main():
             if CONFIG['print_stats']:
                 stats.print_stats()
             total_time = end-start
-            total_time = "%d:%02d:%02d" %\
-                (total_time / 3600, (total_time / 3600) / 60, (total_time % 3600) % 60)
-            print(f"Total time: {total_time}")
+            total_time = '%d:%02d:%02d' % (total_time / 3600,
+                                           (total_time / 3600) / 60,
+                                           (total_time % 3600) % 60)
+            print(f'Total time: {total_time}')
 
     except KeyboardInterrupt:
-        print("Interrupted")
+        print('Interrupted')
 
     return 0
+
 
 if __name__ == '__main__':
     exit(main())
