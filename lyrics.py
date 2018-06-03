@@ -32,6 +32,7 @@ import ssl
 import json
 import threading
 from queue import Queue
+from pathlib import Path
 
 import urllib.request as request
 from urllib.error import URLError, HTTPError
@@ -763,11 +764,24 @@ class Song:
 
     def __repr__(self):
         if self.artist and self.title and not hasattr(self, 'filename'):
-            return f'{self.artist} - {self.title}'
+            return f'{self.artist.title()} - {self.title.title()}'
         elif self.filename:
             return self.filename
         else:
             return ''
+
+    def __eq__(self, other):
+        if hasattr(self, 'filename') and hasattr(other, 'filename'):
+            return Path(self.filename) == Path(other.filename)
+        else:
+            equal = self.artist.lower() == other.artist.lower()
+            equal = equal and self.title.lower() == other.title.lower()
+            return equal
+
+    def __hash__(self):
+        if hasattr(self, 'filename'):
+            return hash(self.filename)
+        return hash((self.artist, self.title, self.album))
 
     @classmethod
     def from_filename(cls, filename):
@@ -790,7 +804,8 @@ class Song:
 
         try:
             audiofile = eyed3.load(filename)
-        except Exception:
+        except Exception as error:
+            print(type(error), error)
             return None
 
         # Sometimes eyed3 may return a null object and not raise any exceptions
@@ -1157,14 +1172,14 @@ def load_from_file(filename):
                     songs.append(line[0:-1])
                 else:
                     songs.append(line)
-
-        return songs
     except IOError as error:
         logger.exception(error)
         return None
+    songs = set(Song.from_string(song) for song in songs)
+    return songs
 
 
-def parseargv():
+def parse_argv():
     """
     Parse command line arguments. Settings will be stored in the global
     variables declared above.
@@ -1175,20 +1190,22 @@ def parseargv():
             metavar='N', default=1)
     parser.add_argument('-o', '--overwrite', help='Overwrite lyrics of songs'
             ' that already have them', action='store_true')
-    parser.add_argument('-r', '--recursive', help='Recursively search for'
-            ' mp3 files', nargs='?', const='.')
-    parser.add_argument('-n', '--by-name', help='A list of song names in'
-            " 'artist - title' format", nargs='*')
     parser.add_argument('-s', '--stats', help='Print a series of statistics at'
             ' the end of the execution', action='store_true')
     parser.add_argument('-v', '--verbose', help='Set verbosity level (pass it'
             ' up to three times)', action='count')
     parser.add_argument('-d', '--debug', help='Enable debug output',
             action='store_true')
-    parser.add_argument('--from-file', help='Read a list of files from a text'
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-r', '--recursive', help='Recursively search for'
+            ' mp3 files', nargs='?', const='.')
+    group.add_argument('-n', '--by-name', help='A list of song names in'
+            " 'artist - title' format", nargs='*')
+    group.add_argument('--from-file', help='Read a list of files from a text'
             ' file', type=str)
     parser.add_argument('files', help='The mp3 files to search lyrics for',
             nargs='*')
+
     args = parser.parse_args()
 
     CONFIG['overwrite'] = args.overwrite
@@ -1201,7 +1218,7 @@ def parseargv():
     else:
         logger.setLevel(logging.DEBUG)
 
-    if args.jobs:
+    if args.jobs is not None:
         if args.jobs <= 0:
             error = 'Argument -j/--jobs should have a value greater than zero'
             raise ValueError(error)
@@ -1209,26 +1226,23 @@ def parseargv():
             CONFIG['jobcount'] = args.jobs
 
     songs = set()
-    if not args.by_name:
+    if args.by_name:
+        for song in args.by_name:
+            songs.add(Song.from_string(song))
+    elif args.from_file:
+        songs = load_from_file(args.from_file)
+        if not songs:
+            raise ValueError('No file names found in file')
+    else:
         mp3files = []
         if args.files:
             mp3files = args.files
         elif args.recursive:
             mp3files = glob.iglob(args.recursive+'/**/*.mp3', recursive=True)
-        elif args.from_file:
-            if not os.path.isfile(args.from_file):
-                raise ValueError('No such file or directory')
-
-            mp3files = load_from_file(args.from_file)
-            if not mp3files:
-                raise ValueError('No file names found in file')
         else:
             raise ValueError('No files specified')
 
-        songs = set([Song.from_filename(f) for f in mp3files])
-    else:
-        for song in args.by_name:
-            songs.add(Song.from_string(song))
+        songs = set(Song.from_filename(f) for f in mp3files)
 
     # Just in case some song constructors failed, remove all the Nones
     return songs.difference({None})
@@ -1240,7 +1254,7 @@ def main():
     """
     msg = ''
     try:
-        songs = parseargv()
+        songs = parse_argv()
         if not songs:
             msg = 'No songs specified'
     except ValueError as error:
