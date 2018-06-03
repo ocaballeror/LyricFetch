@@ -1152,8 +1152,6 @@ def parseargv():
             ' files and embed them as metadata')
     parser.add_argument('-j', '--jobs', help='Number of parallel processes', type=int,
             metavar='N', default=1)
-    parser.add_argument('-f', '--force', help='Confirm the use of too many processes',
-            action='store_true')
     parser.add_argument('-o', '--overwrite', help='Overwrite lyrics of songs'
             ' that already have them', action='store_true')
     parser.add_argument('-r', '--recursive', help='Recursively search for'
@@ -1183,13 +1181,7 @@ def parseargv():
         logger.setLevel(logging.DEBUG)
 
     if args.jobs:
-        if args.jobs > os.cpu_count() and not args.force:
-            logger.error('You specified a number of parallel threads'
-            ' greater than the number of processors in your system. To continue'
-            ' at your own risk you must confirm you choice with -f')
-            errno = os.errno.EINVAL
-            return None
-        elif args.jobs <= 0:
+        if args.jobs <= 0:
             logger.error('%s: error: argument -j/--jobs should'
                          ' have a value greater than zero', sys.argv[0])
             errno = os.errno.EINVAL
