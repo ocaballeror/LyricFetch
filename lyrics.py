@@ -1059,11 +1059,19 @@ def run(songs):
     Calls get_lyrics_threaded for a song or list of songs.
     """
     if not hasattr(songs, '__iter__'):
-        songs = [songs]
-
-    for song in songs:
-        result = get_lyrics_threaded(song)
+        result = get_lyrics_threaded(songs)
         process_result(result)
+    else:
+        start = time.time()
+        stats = run_mp(songs)
+        end = time.time()
+        if CONFIG['print_stats']:
+            stats.print_stats()
+        total_time = end-start
+        total_time = '%d:%02d:%02d' % (total_time / 3600,
+                                       (total_time / 3600) / 60,
+                                       (total_time % 3600) % 60)
+        print(f'Total time: {total_time}')
 
 
 def run_mp(songs):
@@ -1146,8 +1154,6 @@ def parseargv():
     Parse command line arguments. Settings will be stored in the global
     variables declared above.
     """
-    global errno
-
     parser = argparse.ArgumentParser(description='Find lyrics for a set of mp3'
             ' files and embed them as metadata')
     parser.add_argument('-j', '--jobs', help='Number of parallel processes', type=int,
@@ -1182,10 +1188,8 @@ def parseargv():
 
     if args.jobs:
         if args.jobs <= 0:
-            logger.error('%s: error: argument -j/--jobs should'
-                         ' have a value greater than zero', sys.argv[0])
-            errno = os.errno.EINVAL
-            return None
+            error = 'Argument -j/--jobs should have a value greater than zero'
+            raise ValueError(error)
         else:
             CONFIG['jobcount'] = args.jobs
 
@@ -1198,21 +1202,13 @@ def parseargv():
             mp3files = glob.iglob(args.recursive+'/**/*.mp3', recursive=True)
         elif args.from_file:
             if not os.path.isfile(args.from_file):
-                errno = os.errno.ENOENT
-                return None
+                raise ValueError('No such file or directory')
 
             mp3files = load_from_file(args.from_file)
             if not mp3files:
-                logger.error('Err: Could not read from file')
-                sys.stderr.write('Err: Could not read from file\n')
-                errno = os.errno.EIO
-                return None
-
+                raise ValueError('No file names found in file')
         else:
-            logger.error('Err: No files specified')
-            sys.stderr.write('Err: No files specified\n')
-            errno = os.errno.EINVAL
-            return None
+            raise ValueError('No files specified')
 
         songs = set([Song.from_filename(f) for f in mp3files])
     else:
@@ -1227,34 +1223,24 @@ def main():
     """
     Main function.
     """
-    songs = parseargv()
-    if songs is None:
-        print(os.strerror(errno))
-        return errno
-    elif not songs:
-        print('No songs specified')
-        return 0
+    msg = ''
+    try:
+        songs = parseargv()
+        if not songs:
+            msg = 'No songs specified'
+    except ValueError as error:
+        msg = str(error)
+    if msg:
+        logger.error('%s: Error: %s', sys.argv[0], msg)
+        return 1
 
     logger.debug('Running with %s', songs)
-
     load_config()
     try:
-        if len(songs) == 1:
-            run(songs)
-        else:
-            start = time.time()
-            stats = run_mp(songs)
-            end = time.time()
-            if CONFIG['print_stats']:
-                stats.print_stats()
-            total_time = end-start
-            total_time = '%d:%02d:%02d' % (total_time / 3600,
-                                           (total_time / 3600) / 60,
-                                           (total_time % 3600) % 60)
-            print(f'Total time: {total_time}')
-
+        run(songs)
     except KeyboardInterrupt:
         print('Interrupted')
+        return 1
 
     return 0
 
