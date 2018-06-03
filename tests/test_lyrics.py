@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import urllib.request
+from urllib.error import HTTPError
 
 import eyed3
 import pytest
@@ -15,9 +16,8 @@ from lyrics import Song
 from lyrics import exclude_sources
 from lyrics import get_lastfm
 from lyrics import get_lyrics
-from lyrics import get_soup
+from lyrics import get_url
 from lyrics import id_source
-from lyrics import load_config
 from lyrics import normalize
 from lyrics import sources
 
@@ -48,27 +48,43 @@ def lastfm_key():
     CONFIG['lastfm_key'] = key
     return key
 
-def test_soup():
+def test_get_url():
     """
-    Check that `get_soup` returns a correct beautifulsoup object from a url.
+    Check that `get_url` returns the contents of a url using different parsers.
     """
-    soup = get_soup('http://example.com')
+    soup = get_url('http://example.com', parser='html')
+    assert soup
     assert hasattr(soup, 'html')
     assert hasattr(soup, 'head')
     assert hasattr(soup, 'body')
-    assert soup.get_text() != ""
+    assert soup.get_text != ''
+
+    raw = get_url('http://example.com', parser='raw')
+    assert '<html>' in raw
+    assert '<head>' in raw
+    assert '<body>' in raw
+    assert '</body>' in raw
+    assert '</head>' in raw
+    assert '</html>' in raw
+
+    url = 'http://jsonapiplayground.reyesoft.com/v2/authors'
+    json_response = get_url(url, parser='json')
+    assert json_response
+    assert isinstance(json_response, dict)
+    assert 'data' in json_response
 
 
-def test_get_soup_tlsv1():
+def test_get_url_tlsv1():
     """
-    Check that `get_soup` can get data from a website using an older encryption
+    Check that `get_url` can get data from a website using an older encryption
     protocol (TLSv1).
     """
-    soup = get_soup('http://www.metal-archives.com')
+    soup = get_url('http://www.metal-archives.com')
+    assert soup
     assert hasattr(soup, 'html')
     assert hasattr(soup, 'head')
     assert hasattr(soup, 'body')
-    assert soup.get_text() != ""
+    assert soup.get_text() != ''
 
 
 @skip_lastfm

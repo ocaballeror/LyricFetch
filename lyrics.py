@@ -68,16 +68,19 @@ CONFIG = {
     'lastfm_key': ''
 }
 
-def get_soup(url):
+
+def get_url(url, parser='html'):
     """
     Requests the specified url and returns a BeautifulSoup object with its
     contents.
     """
-    url = request.quote(url, safe=":/?=%")
+    url = request.quote(url, safe=':/?=&')
     logger.debug('URL: %s', url)
     req = request.Request(url, headers={'User-Agent': 'foobar'})
     try:
         response = request.urlopen(req)
+    except HTTPError:
+        raise
     except (ssl.SSLError, URLError):
         # Some websites (like metal-archives) use older TLS versions and can
         # make the ssl module trow a VERSION_TOO_LOW error. Here we try to use
@@ -85,7 +88,14 @@ def get_soup(url):
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         response = request.urlopen(req, context=context)
 
-    return BeautifulSoup(response.read(), 'html.parser')
+    response = response.read()
+    if parser == 'html':
+        return BeautifulSoup(response, 'html.parser')
+    elif parser == 'json':
+        return json.loads(response)
+    elif parser == 'raw':
+        return response.decode()
+    raise ValueError('Unrecognized parser')
 
 
 def get_lastfm(method, lastfm_key='', **kwargs):
@@ -104,16 +114,7 @@ def get_lastfm(method, lastfm_key='', **kwargs):
     for key in kwargs:
         url += '&{}={}'.format(key, kwargs[key])
 
-    url = request.quote(url, safe=':/?=%&')
-    logger.debug('LASTFM URL: %s', url)
-    req = request.Request(url)
-    try:
-        response = request.urlopen(req)
-    except URLError:
-        logger.error('URLError when requesting from LAST.fm: %s', url)
-        return ''
-
-    response = json.loads(response.read())
+    response = get_url(url, parser='json')
     if 'error' in response:
         logger.error('Error number %d in lastfm query: %s',
                      response['error'], response['message'])
@@ -176,7 +177,7 @@ def metrolyrics(song):
     artist = re.sub(r'\-{2,}', '-', artist)
 
     url = 'http://www.metrolyrics.com/{}-lyrics-{}.html'.format(title, artist)
-    soup = get_soup(url)
+    soup = get_url(url)
     body = soup.find(id='lyrics-body-text')
     if body is None:
         return ''
@@ -211,7 +212,7 @@ def darklyrics(song):
     title = song.title
 
     url = 'http://www.darklyrics.com/lyrics/{}/{}.html'.format(artist, album)
-    soup = get_soup(url)
+    soup = get_url(url)
     text = ''
     for header in soup.find_all('h3'):
         song = str(header.get_text())
@@ -239,7 +240,7 @@ def azlyrics(song):
     title = normalize(title, URLESCAPES, '')
 
     url = 'https://www.azlyrics.com/lyrics/{}/{}.html'.format(artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     body = soup.find_all('div', class_='')[-1]
     return body.get_text().strip()
 
@@ -261,7 +262,7 @@ def genius(song):
     title = normalize(title, translate)
 
     url = 'https://www.genius.com/{}-{}-lyrics'.format(artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     for content in soup.find_all('p'):
         if content:
             text = content.get_text().strip()
@@ -281,27 +282,24 @@ def metalarchives(song):
 
     url = 'https://www.metal-archives.com/search/ajax-advanced/searching/songs'
     url += f'/?songTitle={title}&bandName={artist}&ExactBandMatch=1'
-    soup = get_soup(url)
+    soup = get_url(url, parser='json')
     if not soup:
         return ''
 
-    ids = []
     song_id_re = re.compile(r'lyricsLink_([0-9]*)')
-    for link in soup.find_all('a'):
-        song_id = re.search(song_id_re, str(link))
-        if song_id:
-            ids.append(song_id.group(1))
-
+    ids = set(re.search(song_id_re, a) for sub in soup['aaData'] for a in sub)
     if not ids:
         return ''
 
+    if None in ids:
+        ids.remove(None)
+    ids = map(lambda a: a.group(1), ids)
     for song_id in ids:
         url = 'https://www.metal-archives.com/release/ajax-view-lyrics/id/{}'
-        url = url.format(song_id)
-        soup = get_soup(url)
-        text = soup.get_text()
-        if not re.search('lyrics not available', text):
-            return text.strip()
+        lyrics = get_url(url.format(song_id), parser='html')
+        lyrics = lyrics.get_text().strip()
+        if not re.search('lyrics not available', lyrics):
+            return lyrics
 
     return ''
 
@@ -317,7 +315,7 @@ def lyricswikia(song):
     title = normalize(title, ' ', '_')
 
     url = 'https://lyrics.wikia.com/wiki/{}:{}'.format(artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     text = ''
     content = soup.find('div', class_='lyricbox')
     if not content:
@@ -365,7 +363,7 @@ def musixmatch(song):
     title = re.sub(r'\-{2,}', '-', title)
 
     url = 'https://www.musixmatch.com/lyrics/{}/{}'.format(artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     text = ''
     contents = soup.find_all('p', class_='mxm-lyrics__content ')
     for p in contents:
@@ -396,7 +394,7 @@ def songlyrics(song):
     title = re.sub(r'\-{2,}', '-', title)
 
     url = 'http://www.songlyrics.com/{}/{}-lyrics'.format(artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     text = soup.find(id='songLyricsDiv')
     if not text:
         return ''
@@ -418,7 +416,7 @@ def lyricscom(song):
     title = song.title
 
     url = 'https://www.lyrics.com/artist/{}'.format(artist)
-    soup = get_soup(url)
+    soup = get_url(url)
     location = ''
     for a in soup.select('tr a'):
         if a.string.lower() == title.lower():
@@ -428,7 +426,7 @@ def lyricscom(song):
         return ''
 
     url = 'https://www.lyrics.com' + location
-    soup = get_soup(url)
+    soup = get_url(url)
     body = soup.find(id='lyric-body-text')
     if not body:
         return ''
@@ -454,7 +452,7 @@ def vagalume(song):
     title = re.sub(r'\-{2,}', '-', title)
 
     url = 'https://www.vagalume.com.br/{}/{}.html'.format(artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     body = soup.select('div[itemprop="description"]')
     if body == []:
         return ''
@@ -493,7 +491,7 @@ def lyricsmode(song):
 
     url = 'http://www.lyricsmode.com/lyrics/{}/{}/{}.html'
     url = url.format(prefix, artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     content = soup.find(id='lyrics_text')
 
     return content.get_text().strip()
@@ -515,7 +513,7 @@ def letras(song):
     title = normalize(title, translate)
 
     url = 'https://www.letras.com/{}/{}/'.format(artist, title)
-    soup = get_soup(url)
+    soup = get_url(url)
     if not soup:
         return ''
 
