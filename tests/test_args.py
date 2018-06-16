@@ -211,3 +211,23 @@ def test_argv_incompatible(monkeypatch, args):
     monkeypatch.setattr(sys, 'argv', new_args)
     with pytest.raises(SystemExit):
         parse_argv()
+
+
+def test_load_config():
+    """
+    Test the `load_config()` function, which should read a json config file and
+    update the CONFIG global dictionary accordingly.
+    """
+    raise NotImplementedError
+
+
+def test_load_from_file():
+    """
+    Test the `load_from_file()` function, which should load a list of filenames
+    from an external text file.
+    """
+    raise NotImplementedError
+
+
+def test_main():
+    raise NotImplementedError
