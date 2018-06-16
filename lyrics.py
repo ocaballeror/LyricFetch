@@ -31,6 +31,7 @@ import logging
 import ssl
 import json
 import threading
+from collections import defaultdict
 from queue import Queue
 from pathlib import Path
 
@@ -641,10 +642,7 @@ class Stats:
     """
     def __init__(self):
         # Maps every lyrics scraping function to a Record object
-        self.source_stats = {}
-
-        for name in sources:
-            self.source_stats[name.__name__] = Record()
+        self.source_stats = defaultdict(Record)
 
     def add_result(self, source, found, runtime):
         """
@@ -681,7 +679,7 @@ class Stats:
         Print a series of relevant stats about a full execution. This function
         is meant to be called at the end of the program.
         """
-        best = worst = fastest = slowest = ()
+        best, worst, fastest, slowest = (), (), (), ()
         found = 0
         total_time = 0
         for source, rec in self.source_stats.items():
@@ -706,7 +704,8 @@ class Stats:
         total_time = '%d:%02d:%02d' % (total_time / 3600,
                                        (total_time / 3600) / 60,
                                        (total_time % 3600) % 60)
-        string = f'''Total runtime: {total_time}
+        string = f'''\
+Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
     Most useful source: {best[0].capitalize()} ({best[1]} lyrics found)\
@@ -720,7 +719,7 @@ class Stats:
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 xxx    PER WEBSITE STATS:      xxx
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    '''
+'''
         for source in sources:
             stat = str(self.source_stats[source.__name__])
             string += f'\n{source.__name__.upper()}\n{stat}\n'
