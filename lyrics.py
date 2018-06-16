@@ -587,6 +587,16 @@ def id_source(source, full=False):
         return source_ids[source][0]
 
 
+def avg(values):
+    """
+    Returns the average of a sequence of numbers.
+    """
+    if not values:
+        return 0
+    else:
+        return sum(values) / len(values)
+
+
 class Record:
     """
     Defines an entry in the stats 'database'. Packs a set of information about
@@ -595,7 +605,6 @@ class Record:
     def __init__(self):
         self.successes = 0
         self.fails = 0
-        self.avg_time = 0
         self.runtimes = []
 
     def __str__(self):
@@ -605,17 +614,14 @@ class Record:
         return f'''Successes: {self.successes}
 Fails: {self.fails}
 Success rate: {self.success_rate():.2f}%
-Average runtime: {Record.avg(self.runtimes):.2f}s'''
+Average runtime: {avg(self.runtimes):.2f}s'''
 
     def add_runtime(self, runtime):
         """
         Add a new runtime to the runtimes dictionary.
         """
         if runtime != 0:
-            self.avg_time *= len(self.runtimes)
-            self.avg_time += runtime
             self.runtimes.append(runtime)
-            self.avg_time /= len(self.runtimes)
 
     def success_rate(self):
         """
@@ -627,16 +633,6 @@ Average runtime: {Record.avg(self.runtimes):.2f}s'''
             success_rate = (self.successes*100/(self.successes + self.fails))
 
         return success_rate
-
-    @staticmethod
-    def avg(values):
-        """
-        Returns the average of a list of numbers.
-        """
-        if values == []:
-            return 0
-        else:
-            return sum(values)/len(values)
 
 
 class Stats:
@@ -669,26 +665,16 @@ class Stats:
         function is passed as source, return the average time taken to scrape
         lyrics from that source, otherwise return the total average.
         """
-        total = 0
-        count = 0
         if source is None:
             runtimes = []
             for rec in self.source_stats.values():
-                for runtime in rec.runtimes:
-                    if runtime != 0:
-                        runtimes.append(runtime)
-
-            total = sum(runtimes)
-            count = len(runtimes)
-            if count == 0:
-                return 0
-            else:
-                return total/count
+                runtimes.extend([r for r in rec.runtimes if r != 0])
+            return avg(runtimes)
         else:
             if callable(source):
-                return self.source_stats[source.__name__].avg_time
+                return avg(self.source_stats[source.__name__].runtimes)
             else:
-                return self.source_stats[source].avg_time
+                return avg(self.source_stats[source].runtimes)
 
     def print_stats(self):
         """
