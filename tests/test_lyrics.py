@@ -4,21 +4,31 @@ Main tests module.
 import json
 import os
 import sys
+import time
 import urllib.request
 from urllib.error import HTTPError
+
+from queue import Queue
 
 import eyed3
 import pytest
 
-sys.path.append('..')
+from conftest import tag_mp3
+
+import lyrics
 from lyrics import CONFIG
+from lyrics import LyrThread
+from lyrics import Result
 from lyrics import Song
+from lyrics import azlyrics
 from lyrics import exclude_sources
 from lyrics import get_lastfm
 from lyrics import get_lyrics
+from lyrics import get_lyrics_threaded
 from lyrics import get_url
 from lyrics import id_source
 from lyrics import normalize
+from lyrics import run_mp
 from lyrics import sources
 
 
@@ -357,12 +367,12 @@ def test_getlyrics_threaded():
     assert result.runtimes[source_3] < 1
 
 
-def test_run_mp():
+def test_run_mp(monkeypatch):
     """
     Test `run_mp()`, which should concurrently search for the lyrics of a list
-    of songs, source by source
+    of songs, source by source.
     """
-    raise NotImplementedError
+    pytest.skip('Not implemented')
 
 
 def test_process_result():
@@ -370,8 +380,8 @@ def test_process_result():
     Check that the `process_result()` function can write the lyrics to the
     corresponding mp3 and return wheter or not they were found.
     """
-    raise NotImplementedError
+    pytest.skip('Not implemented')
 
 
 def test_run():
-    raise NotImplementedError
+    pytest.skip('Not implemented')

@@ -1028,14 +1028,12 @@ def get_lyrics_threaded(song, l_sources=None):
         thread.start()
 
     for _ in range(len(pool)):
-        while queue.empty():
-            time.sleep(.01)
         result = queue.get()
         runtimes[result['source']] = result['runtime']
-        if result['lyrics'] != '':
+        if result['lyrics']:
             break
 
-    if result['lyrics'] != '':
+    if result['lyrics']:
         song.lyrics = result['lyrics']
         source = result['source']
     else:
