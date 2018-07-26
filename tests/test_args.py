@@ -80,12 +80,12 @@ def test_argv_recursive(monkeypatch, mp3file):
     Check that the `-r` flag searches recursively for mp3 files and returns a
     list with all the names found.
     """
-    tempdir = Path(tempfile.mkdtemp(dir='.'))
-    tempdir_dir = tempdir / 'dir'
-    os.mkdir(tempdir_dir)
+    tmpdir = Path(tempfile.mkdtemp(dir='.'))
+    tempdir_dir = tmpdir / 'dir'
+    tempdir_dir.mkdir()
     mp3s = [
-        tempdir / 'first.mp3',
-        tempdir / 'second.mp3',
+        tmpdir / 'first.mp3',
+        tmpdir / 'second.mp3',
         tempdir_dir / 'third.mp3',
         tempdir_dir / 'fourth.mp3',
     ]
@@ -98,33 +98,29 @@ def test_argv_recursive(monkeypatch, mp3file):
     try:
         assert set(mp3s) == songs
     finally:
-        shutil.rmtree(tempdir)
+        shutil.rmtree(tmpdir)
 
 
-def test_argv_recursive_path(monkeypatch, mp3file):
+def test_argv_recursive_path(monkeypatch, mp3file, tmpdir):
     """
     Check that the `-r` flag can search in a different path given as an
     argument too.
     """
-    tempdir = Path(tempfile.mkdtemp())
-    tempdir_dir = tempdir / 'dir'
-    os.mkdir(tempdir_dir)
+    tempdir_dir = tmpdir / 'dir'
+    tempdir_dir.mkdir()
     mp3s = [
-        tempdir / 'first.mp3',
-        tempdir / 'second.mp3',
+        tmpdir / 'first.mp3',
+        tmpdir / 'second.mp3',
         tempdir_dir / 'third.mp3',
         tempdir_dir / 'fourth.mp3',
     ]
     for mp3 in mp3s:
         shutil.copyfile(mp3file, mp3)
 
-    monkeypatch.setattr(sys, 'argv', [__file__, '-r', str(tempdir)])
+    monkeypatch.setattr(sys, 'argv', [__file__, '-r', str(tmpdir)])
     songs = parse_argv()
-    songs = set(Path(s.filename) for s in songs)
-    try:
-        assert set(mp3s) == songs
-    finally:
-        shutil.rmtree(tempdir)
+    songs = set(pypath(s.filename) for s in songs)
+    assert set(mp3s) == songs
 
 
 def test_argv_by_name(monkeypatch):
@@ -187,16 +183,15 @@ def test_argv_from_file(monkeypatch, tmpdir, mp3file):
     assert parsed_songs == set(parsed_songs)
 
 
-def test_argv_filename(monkeypatch, mp3file):
+def test_argv_filename(monkeypatch, mp3file, tmpdir):
     """
     Test that the main script can accept a list of file names passed as
     parameters, and return them all in a list.
     """
-    tempdir = Path(tempfile.mkdtemp())
     mp3s = [
-        tempdir / 'first.mp3',
-        tempdir / 'second.mp3',
-        tempdir / 'third.mp3',
+        tmpdir / 'first.mp3',
+        tmpdir / 'second.mp3',
+        tmpdir / 'third.mp3',
     ]
     new_args = [__file__]
     for mp3 in mp3s:
@@ -205,11 +200,8 @@ def test_argv_filename(monkeypatch, mp3file):
 
     monkeypatch.setattr(sys, 'argv', new_args)
     songs = parse_argv()
-    songs = set(Path(s.filename) for s in songs)
-    try:
-        assert set(mp3s) == songs
-    finally:
-        shutil.rmtree(tempdir)
+    songs = set(pypath(s.filename) for s in songs)
+    assert set(mp3s) == songs
 
 
 @pytest.mark.parametrize('args', [
@@ -251,8 +243,10 @@ def test_load_from_file_errors(tmpdir):
     """
     Test the errors that can be raised from `load_from_file()`.
     """
-    tempdir = Path(tempfile.mkdtemp())
-    assert load_from_file(tempdir) is None
+    assert load_from_file(tmpdir) is None
+
+    tmpdir.remove()
+    assert load_from_file(tmpdir) is None
 
     with NamedTemporaryFile('w') as tmp:
         assert not load_from_file(tmp.name)
