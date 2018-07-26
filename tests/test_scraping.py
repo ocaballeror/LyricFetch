@@ -22,7 +22,10 @@ from lyrics import letras, lyricsmode, lyricscom
 def check_site_available(site, secure=False):
     print('sup')
     try:
-        url = id_source(site, full=True).lower()
+        if not isinstance(site, str):
+            url = id_source(site, full=True).lower()
+        else:
+            url = site
         prefix = 'https' if secure else 'http'
         print(url)
         get_url(f'{prefix}://{url}', parser='raw')
@@ -60,6 +63,10 @@ def test_scrap(site, artist, title):
     lastfm_key()
     if not check_site_available(site):
         pytest.skip('This site is not avialable')
+    if site is darklyrics:
+        extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
+        if not check_site_available(extra_check):
+            pytest.skip('Darklyrics blocked you again')
     song = Song.from_info(artist=artist, title=title)
     lyrics = site(song)
     assert lyrics != ''
