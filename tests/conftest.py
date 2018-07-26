@@ -3,12 +3,13 @@ Common fixtures and helper functions.
 """
 import json
 import os
+import shutil
 import sys
+import tempfile
 import urllib.request
 
 import pytest
 import eyed3
-
 
 if '..' not in sys.path:
     sys.path.append('..')
@@ -18,18 +19,35 @@ from lyrics import CONFIG
 CONFIG_FILE = '../config.json'
 
 
-@pytest.fixture
-def mp3file():
+@pytest.fixture(scope='session')
+def _mp3file():
     """
-    A sample, valid mp3 file downloaded from the internet.
+    A helper to mp3file() with a session scope, so we don't download the same
+    file everytime the fixture is invoked.
     """
+    filename = tempfile.mktemp()
     url = 'http://www.noiseaddicts.com/samples_1w72b820/4930.mp3'
-    filename, _ = urllib.request.urlretrieve(url)
+    urllib.request.urlretrieve(url, filename=filename)
+    assert os.stat(filename).st_size > 0
     audiofile = eyed3.load(filename)
     audiofile.tag = eyed3.id3.Tag()
     audiofile.tag.save()
+
     yield filename
-    os.unlink(filename)
+    if os.path.isfile(filename):
+        os.unlink(filename)
+
+
+@pytest.fixture
+def mp3file(_mp3file):
+    """
+    A sample, valid mp3 file downloaded from the internet.
+    """
+    file_copy = tempfile.mktemp()
+    shutil.copy(_mp3file, file_copy)
+    yield file_copy
+    if os.path.isfile(file_copy):
+        os.unlink(file_copy)
 
 
 @pytest.fixture(scope='session')
