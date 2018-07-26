@@ -1,7 +1,7 @@
 """
 Module to test the different CLI arguments that can be passed.
 """
-import os
+import json
 import random
 import shutil
 import sys
@@ -10,12 +10,18 @@ from argparse import ArgumentError
 from pathlib import Path
 
 import pytest
+from py.path import local as pypath
+from conftest import tag_mp3
 
 from test_lyrics import mp3file
 
 sys.path.append('..')
+import lyrics
 from lyrics import CONFIG
 from lyrics import Song
+from lyrics import load_config
+from lyrics import load_from_file
+from lyrics import main
 from lyrics import parse_argv
 
 
@@ -150,25 +156,37 @@ def test_argv_by_name(monkeypatch):
     assert songs == set(param_songs)
 
 
-def test_argv_from_file(monkeypatch):
+def test_argv_from_file(monkeypatch, tmpdir, mp3file):
     """
     Check that the `--from_file` argument can read a text file containing a
     list of filenames, and return a list with all of them.
     """
-    param_songs = [
-        Song.from_info('white wizzard', 'the sun also rises'),
-        Song.from_info('mastodon', 'andromeda'),
-        Song.from_info('megadeth', 'dawn patrol'),
+    mp3_files = [
+        tmpdir / 'first.mp3',
+        tmpdir / 'second.mp3',
+        tmpdir / 'third.mp3',
     ]
-    with tempfile.NamedTemporaryFile('w', delete=False) as tmp:
-        tmp_name = tmp.name
-        for song in param_songs:
-            tmp.write(f'{song.artist} - {song.title}\n')
-        tmp.close()
+    song_tags = [
+        ('white wizzard', 'the sun also rises'),
+        ('mastodon', 'andromeda'),
+        ('megadeth', 'dawn patrol'),
+    ]
+    songs = []
+    for filename, tag in zip(mp3_files, song_tags):
+        artist, title = tag
+        shutil.copyfile(mp3file, filename)
+        tag_mp3(filename, artist=artist, title=title)
+        songs.append(Song.from_info(artist=artist, title=title))
 
-    monkeypatch.setattr(sys, 'argv', [__file__, '--from-file', tmp_name])
-    songs = parse_argv()
-    assert songs == set(param_songs)
+    with NamedTemporaryFile('w') as tmp:
+        for filename in mp3_files:
+            tmp.write(str(filename) + '\n')
+        tmp.flush()
+
+        monkeypatch.setattr(sys, 'argv', [__file__, '--from-file', tmp.name])
+        parsed_songs = parse_argv()
+
+    assert parsed_songs == set(parsed_songs)
 
 
 def test_argv_filename(monkeypatch, mp3file):
@@ -213,21 +231,61 @@ def test_argv_incompatible(monkeypatch, args):
         parse_argv()
 
 
-def test_load_config():
+def test_load_config(monkeypatch):
     """
     Test the `load_config()` function, which should read a json config file and
     update the CONFIG global dictionary accordingly.
     """
-    raise NotImplementedError
+    config_dummy = {'test': True, 'othertest': 'stuff'}
+    with tempfile.NamedTemporaryFile('w', delete=False) as tmp:
+        tmp_name = tmp.name
+        tmp.write(json.dumps(config_dummy))
+        tmp.close()
+
+    monkeypatch.setattr(lyrics, 'CONFFILE', tmp_name)
+    load_config()
+    assert 'test' in CONFIG
+    assert 'othertest' in CONFIG
+    assert CONFIG['test'] == config_dummy['test']
+    assert CONFIG['othertest'] == config_dummy['othertest']
 
 
-def test_load_from_file():
+def test_load_from_file_errors(tmpdir):
     """
-    Test the `load_from_file()` function, which should load a list of filenames
-    from an external text file.
+    Test the errors that can be raised from `load_from_file()`.
     """
-    raise NotImplementedError
+    tempdir = Path(tempfile.mkdtemp())
+    assert load_from_file(tempdir) is None
+
+    with NamedTemporaryFile('w') as tmp:
+        assert not load_from_file(tmp.name)
 
 
-def test_main():
-    raise NotImplementedError
+def test_main_errors(monkeypatch):
+    """
+    Test the different error conditions that can occurr when calling `main()`.
+    """
+    def empty_set():
+        return set()
+
+    def filled_set():
+        return set('hello world')
+
+    def value_error():
+        raise ValueError('whattup')
+
+    def fake_run(songs):
+        raise KeyboardInterrupt
+
+    # Make parse_argv() return an empty set
+    monkeypatch.setattr(lyrics, 'parse_argv', empty_set)
+    assert main() == 1
+
+    # Make parse_argv() raise a ValueError
+    monkeypatch.setattr(lyrics, 'parse_argv', value_error)
+    assert main() == 1
+
+    # Interrupt the process with a keyboard interrupt
+    monkeypatch.setattr(lyrics, 'parse_argv', filled_set)
+    monkeypatch.setattr(lyrics, 'run', fake_run)
+    assert main() == 1

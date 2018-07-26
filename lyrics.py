@@ -1149,17 +1149,12 @@ def load_from_file(filename):
 
     try:
         with open(filename, 'r') as sourcefile:
-            songs = []
-            for line in sourcefile:
-                if line[-1] == '\n':
-                    songs.append(line[0:-1])
-                else:
-                    songs.append(line)
+            songs = [line.strip() for line in sourcefile]
     except IOError as error:
         logger.exception(error)
         return None
-    songs = set(Song.from_string(song) for song in songs)
-    return songs
+    songs = set(Song.from_filename(song) for song in songs)
+    return songs.difference({None})  # In case any were in the wrong format
 
 
 def parse_argv():

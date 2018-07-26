@@ -270,8 +270,8 @@ def test_getlyrics_dont_overwrite(mp3file):
     audiofile.tag.lyrics.set(placeholder)
     audiofile.tag.save()
     song = Song.from_filename(mp3file)
+    CONFIG['overwrite'] = False
     assert get_lyrics(song) is None
-    song = Song.from_filename(mp3file)
     assert song.lyrics == placeholder
 
 
