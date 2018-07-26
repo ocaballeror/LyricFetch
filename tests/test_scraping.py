@@ -8,9 +8,8 @@ from http.client import RemoteDisconnected
 
 import pytest
 
-from test_lyrics import lastfm_key
+from conftest import lastfm_key
 
-sys.path.append('..')
 from lyrics import Song
 from lyrics import id_source
 from lyrics import get_url

@@ -32,31 +32,11 @@ from lyrics import run_mp
 from lyrics import sources
 
 
-config_file = '../config.json'
-skip_lastfm = pytest.mark.skipif(not os.path.isfile(config_file),
+CONFIG_FILE = '../config.json'
+
+skip_lastfm = pytest.mark.skipif(not os.path.isfile(CONFIG_FILE),
                                  reason='No configuration file')
 
-
-@pytest.fixture
-def mp3file():
-    url = 'http://www.noiseaddicts.com/samples_1w72b820/4930.mp3'
-    filename, response = urllib.request.urlretrieve(url)
-    audiofile = eyed3.load(filename)
-    audiofile.tag = eyed3.id3.Tag()
-    audiofile.tag.save()
-    yield filename
-    os.unlink(filename)
-
-
-@pytest.fixture(scope='session')
-def lastfm_key():
-    with open(config_file) as conffile:
-        config = json.load(conffile)
-        key = config['lastfm_key']
-    if key == '':
-        raise RuntimeError('No lastfm key configured')
-    CONFIG['lastfm_key'] = key
-    return key
 
 def test_get_url():
     """

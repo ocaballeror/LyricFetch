@@ -4,7 +4,6 @@ Tests for the `Stats` and `Record` classes.
 import sys
 import pytest
 
-sys.path.append('..')
 from lyrics import Record, Stats
 from lyrics import avg
 

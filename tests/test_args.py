@@ -13,9 +13,6 @@ import pytest
 from py.path import local as pypath
 from conftest import tag_mp3
 
-from test_lyrics import mp3file
-
-sys.path.append('..')
 import lyrics
 from lyrics import CONFIG
 from lyrics import Song

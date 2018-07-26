@@ -8,9 +8,6 @@ import tempfile
 import eyed3
 import pytest
 
-from test_lyrics import mp3file, lastfm_key
-
-sys.path.append('..')
 from lyrics import Song
 
 def test_song_from_filename(mp3file):
