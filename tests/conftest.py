@@ -41,3 +41,16 @@ def lastfm_key():
         raise RuntimeError('No lastfm key configured')
     CONFIG['lastfm_key'] = key
     return key
+
+
+def tag_mp3(filename, **kwargs):
+    """
+    Write the specified tags to an mp3 file.
+    """
+    audiofile = eyed3.load(filename)
+    for key, arg in kwargs.items():
+        if key == 'lyrics':
+            audiofile.tag.lyrics.set(arg)
+        else:
+            setattr(audiofile.tag, key, arg)
+    audiofile.tag.save()

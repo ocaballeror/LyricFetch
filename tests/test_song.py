@@ -5,20 +5,19 @@ import os
 import sys
 import tempfile
 
-import eyed3
 import pytest
 
+from conftest import tag_mp3
 from lyrics import Song
 
 def test_song_from_filename(mp3file):
     """
     Create a song object from an mp3 file.
     """
-    audiofile = eyed3.load(mp3file)
-    audiofile.tag.artist = 'Kataklysm'
-    audiofile.tag.title = 'Born to kill and destined to die'
-    audiofile.tag.album = 'Meditations'
-    audiofile.tag.save()
+    tag_mp3(mp3file,
+            artist='Kataklysm',
+            title='Born to kill and destined to die',
+            album='Meditations')
 
     song = Song.from_filename(mp3file)
     assert song

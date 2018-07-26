@@ -7,10 +7,8 @@ import sys
 import time
 import urllib.request
 from urllib.error import HTTPError
-
 from queue import Queue
 
-import eyed3
 import pytest
 
 from conftest import tag_mp3
@@ -232,10 +230,7 @@ def test_getlyrics_from_song(mp3file):
     Check that the main method can find the lyrics for a song and write them as
     ID3 metadata.
     """
-    audiofile = eyed3.load(mp3file)
-    audiofile.tag.artist = 'YOB'
-    audiofile.tag.title = 'Our raw heart'
-    audiofile.tag.save()
+    tag_mp3(mp3file, artist='YOB', title='Our raw heart')
     song = Song.from_filename(mp3file)
     result = get_lyrics(song)
     assert "my restless ghost" in result.song.lyrics.lower()
@@ -245,10 +240,9 @@ def test_getlyrics_dont_overwrite(mp3file):
     """
     Check that we skip a song if the mp3 file already has embedded lyrics.
     """
-    audiofile = eyed3.load(mp3file)
     placeholder = 'Some lyrics'
-    audiofile.tag.lyrics.set(placeholder)
-    audiofile.tag.save()
+    tag_mp3(mp3file, lyrics=placeholder)
+
     song = Song.from_filename(mp3file)
     CONFIG['overwrite'] = False
     assert get_lyrics(song) is None
@@ -260,11 +254,8 @@ def test_getlyrics_overwrite(mp3file):
     Check that we can overwrite the lyrics of a song if it already has them.
     """
     placeholder = 'Some lyrics'
-    audiofile = eyed3.load(mp3file)
-    audiofile.tag.lyrics.set(placeholder)
-    audiofile.tag.artist = 'Baroness'
-    audiofile.tag.title = 'Eula'
-    audiofile.tag.save()
+    tag_mp3(mp3file, artist='Baroness', title='Eula', lyrics=placeholder)
+
     song = Song.from_filename(mp3file)
     CONFIG['overwrite'] = True
     result = get_lyrics(song)
