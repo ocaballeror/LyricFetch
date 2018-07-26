@@ -6,6 +6,7 @@ import random
 import shutil
 import sys
 import tempfile
+from tempfile import NamedTemporaryFile
 from argparse import ArgumentError
 from pathlib import Path
 
@@ -234,17 +235,16 @@ def test_load_config(monkeypatch):
     update the CONFIG global dictionary accordingly.
     """
     config_dummy = {'test': True, 'othertest': 'stuff'}
-    with tempfile.NamedTemporaryFile('w', delete=False) as tmp:
-        tmp_name = tmp.name
+    with NamedTemporaryFile('w') as tmp:
         tmp.write(json.dumps(config_dummy))
-        tmp.close()
+        tmp.flush()
 
-    monkeypatch.setattr(lyrics, 'CONFFILE', tmp_name)
-    load_config()
-    assert 'test' in CONFIG
-    assert 'othertest' in CONFIG
-    assert CONFIG['test'] == config_dummy['test']
-    assert CONFIG['othertest'] == config_dummy['othertest']
+        monkeypatch.setattr(lyrics, 'CONFFILE', tmp.name)
+        load_config()
+        assert 'test' in CONFIG
+        assert 'othertest' in CONFIG
+        assert CONFIG['test'] == config_dummy['test']
+        assert CONFIG['othertest'] == config_dummy['othertest']
 
 
 def test_load_from_file_errors(tmpdir):

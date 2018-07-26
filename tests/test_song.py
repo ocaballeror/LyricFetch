@@ -3,7 +3,8 @@ Tests for the `Song` class.
 """
 import os
 import sys
-import tempfile
+from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
 
 import pytest
 
@@ -34,13 +35,11 @@ def test_song_from_filename_errors():
     """
     assert Song.from_filename('') is None
 
-    temp = tempfile.NamedTemporaryFile()
-    os.unlink(temp.name)
-    assert Song.from_filename(temp.name) is None
+    with NamedTemporaryFile() as temp:
+        assert Song.from_filename(temp.name) is None
 
-    temp = tempfile.TemporaryDirectory()
-    assert Song.from_filename(temp.name) is None
-    os.rmdir(temp.name)
+    with TemporaryDirectory() as temp:
+        assert Song.from_filename(temp) is None
 
 def test_song_from_info():
     """
