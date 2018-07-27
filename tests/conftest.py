@@ -52,11 +52,13 @@ def mp3file(_mp3file):
 
 @pytest.fixture(scope='session')
 def lastfm_key():
+    if not os.path.isfile(CONFIG_FILE):
+        pytest.skip('No configuration file')
     with open(CONFIG_FILE) as conffile:
         config = json.load(conffile)
         key = config['lastfm_key']
-    if key == '':
-        raise RuntimeError('No lastfm key configured')
+    if not key:
+        pytest.skip('No lastfm key configured')
     CONFIG['lastfm_key'] = key
     return key
 

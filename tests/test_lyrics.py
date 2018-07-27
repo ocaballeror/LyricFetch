@@ -32,9 +32,6 @@ from lyrics import sources
 
 CONFIG_FILE = '../config.json'
 
-skip_lastfm = pytest.mark.skipif(not os.path.isfile(CONFIG_FILE),
-                                 reason='No configuration file')
-
 
 def test_get_url():
     """
@@ -75,7 +72,6 @@ def test_get_url_tlsv1():
     assert soup.get_text() != ''
 
 
-@skip_lastfm
 def test_get_lastfm(lastfm_key):
     """
     The `get_lastfm` function should return a json object with the response
@@ -89,7 +85,6 @@ def test_get_lastfm(lastfm_key):
     assert 'album' in track['track']
 
 
-@skip_lastfm
 def test_get_lastfm_wrong_key():
     """
     `get_lastfm` should fail if they key is invalid.
@@ -98,7 +93,6 @@ def test_get_lastfm_wrong_key():
         get_lastfm('track.getInfo', lastfm_key='asdfasdf')
 
 
-@skip_lastfm
 def test_get_lastfm_wrong_method(lastfm_key):
     """
     `get_lastfm` should fail if the method requested is invalid.
@@ -107,7 +101,6 @@ def test_get_lastfm_wrong_method(lastfm_key):
         get_lastfm('asdfasdf', lastfm_key=lastfm_key)
 
 
-@skip_lastfm
 def test_get_lastfm_wrong_arguments(lastfm_key):
     """
     `get_lastfm` should fail and return an empty string if they arguments to
