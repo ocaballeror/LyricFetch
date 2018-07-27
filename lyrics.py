@@ -674,57 +674,85 @@ class Stats:
             else:
                 return avg(self.source_stats[source].runtimes)
 
-    def print_stats(self):
+    def calculate(self):
         """
-        Print a series of relevant stats about a full execution. This function
-        is meant to be called at the end of the program.
+        Calculate the overall counts of best, worst, fastest, slowest, total
+        found, total not found and total runtime
+
+        Results are returned in a dictionary with the above parameters as keys.
         """
         best, worst, fastest, slowest = (), (), (), ()
-        found = 0
-        total_time = 0
+        found = notfound = total_time = 0
         for source, rec in self.source_stats.items():
             if not best or rec.successes > best[1]:
                 best = (source, rec.successes, rec.success_rate())
             if not worst or rec.successes < worst[1]:
                 worst = (source, rec.successes, rec.success_rate())
 
-            avg = self.avg_time(source)
-            if not fastest or (avg != 0 and avg < fastest[1]):
-                fastest = (source, avg)
-            if not slowest or (avg != 0 and avg > slowest[1]):
-                slowest = (source, avg)
+            avg_time = self.avg_time(source)
+            if not fastest or (avg_time != 0 and avg_time < fastest[1]):
+                fastest = (source, avg_time)
+            if not slowest or (avg_time != 0 and avg_time > slowest[1]):
+                slowest = (source, avg_time)
 
             found += rec.successes
+            notfound += rec.fails
             total_time += sum(rec.runtimes)
 
-        # The songs which lyrics were not found, will be the number of fails
-        # for the last source in the list
-        notfound = self.source_stats[sources[-1].__name__].fails
+        return {
+            'best': best,
+            'worst': worst,
+            'fastest': fastest,
+            'slowest': slowest,
+            'found': found,
+            'notfound': notfound,
+            'total_time': total_time
+        }
 
-        total_time = '%d:%02d:%02d' % (total_time / 3600,
-                                       (total_time / 3600) / 60,
-                                       (total_time % 3600) % 60)
-        string = f'''\
+    def print_stats(self):
+        """
+        Print a series of relevant stats about a full execution. This function
+        is meant to be called at the end of the program.
+        """
+        stats = self.calculate()
+        total_time = '%d:%02d:%02d' % (stats['total_time'] / 3600,
+                                       (stats['total_time'] / 3600) / 60,
+                                       (stats['total_time'] % 3600) % 60)
+        output = '''\
 Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
-    Most useful source: {best[0].capitalize()} ({best[1]} lyrics found)\
-({best[2]:.2f}% success rate)
-    Least useful source: {worst[0].capitalize()} ({worst[1]} lyrics found)\
-({worst[2]:.2f}% success rate)
-    Fastest website to scrape: {fastest[0].capitalize()} (Avg: {fastest[1]:.2f}s per search)
-    Slowest website to scrape: {slowest[0].capitalize()} (Avg: {slowest[1]:.2f}s per search)
-    Average time per website: {self.avg_time():.2f}s
+    Most useful source:\
+{best} ({best_count} lyrics found) ({best_rate:.2f}% success rate)
+    Least useful source:\
+{worst} ({worst_count} lyrics found) ({worst_rate:.2f}% success rate)
+    Fastest website to scrape: {fastest} (Avg: {fastest_time:.2f}s per search)
+    Slowest website to scrape: {slowest} (Avg: {slowest_time:.2f}s per search)
+    Average time per website: {avg_time:.2f}s
 
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 xxx    PER WEBSITE STATS:      xxx
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 '''
+        output = output.format(total_time=total_time,
+                               found=stats['found'],
+                               notfound=stats['notfound'],
+                               best=stats['best'][0].capitalize(),
+                               best_count=stats['best'][1],
+                               best_rate=stats['best'][2],
+                               worst=stats['worst'][0].capitalize(),
+                               worst_count=stats['worst'][1],
+                               worst_rate=stats['worst'][2],
+                               fastest=stats['fastest'][0].capitalize(),
+                               fastest_time=stats['fastest'][1],
+                               slowest=stats['slowest'][0].capitalize(),
+                               slowest_time=stats['slowest'][1],
+                               avg_time=self.avg_time())
         for source in sources:
             stat = str(self.source_stats[source.__name__])
-            string += f'\n{source.__name__.upper()}\n{stat}\n'
+            output += f'\n{source.__name__.upper()}\n{stat}\n'
 
-        print(string)
+        print(output)
 
 
 class Song:

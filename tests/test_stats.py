@@ -6,6 +6,8 @@ import pytest
 
 from lyrics import Record, Stats
 from lyrics import avg
+from lyrics import azlyrics
+from lyrics import metrolyrics
 
 
 def some_source():
@@ -92,3 +94,28 @@ def test_stats_avg_time():
     assert stats.avg_time(some_source) == average
     average = avg(stats.source_stats['other_source'].runtimes)
     assert stats.avg_time('other_source') == average
+
+
+def test_stats_calculate():
+    """
+    Check the calculations of all the parameters in `Stats.calculate()`.
+    """
+    stats = Stats()
+    stats.add_result(azlyrics, True, 1)
+    stats.add_result(azlyrics, True, 1)
+    stats.add_result(azlyrics, True, 1)
+    stats.add_result(azlyrics, False, 1)
+    stats.add_result(metrolyrics, False, 2)
+    stats.add_result(metrolyrics, False, 2)
+    stats.add_result(metrolyrics, False, 2)
+    calc = stats.calculate()
+
+    assert calc == {
+        'best': ('azlyrics', 3, 75),
+        'worst': ('metrolyrics', 0, 0),
+        'fastest': ('azlyrics', 1),
+        'slowest': ('metrolyrics', 2),
+        'found': 3,
+        'notfound': 4,
+        'total_time': 10
+    }
