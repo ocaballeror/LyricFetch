@@ -36,6 +36,8 @@ setup(
     extras_require={
         'lint': [
             'flake8',
+            'flake8-quotes',
+            'flake8-per-file-ignores',
         ],
         'test': [
             'pytest',
