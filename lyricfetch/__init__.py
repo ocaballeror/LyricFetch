@@ -1,3 +1,6 @@
+import os
+
+
 CONFFILE = '../config.json'
 CONFIG = {
     'jobcount': 1,
@@ -7,6 +10,11 @@ CONFIG = {
     'debug': False,
     'lastfm_key': ''
 }
+for key in CONFIG:
+    environ_key = 'LFETCH_' + key.upper()
+    if environ_key in os.environ:
+        print(environ_key)
+        CONFIG[key] = os.environ.get(environ_key)
 
 # Contains the characters usually removed or replaced in URLS
 URLESCAPE = '.¿?%_@,;&\\/()\'"-!¡'
