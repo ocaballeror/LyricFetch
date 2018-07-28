@@ -3,7 +3,9 @@ Main tests module.
 """
 import json
 import os
+import shutil
 import sys
+import tempfile
 import time
 import urllib.request
 from urllib.error import HTTPError
@@ -26,6 +28,7 @@ from lyrics import get_lyrics_threaded
 from lyrics import get_url
 from lyrics import id_source
 from lyrics import normalize
+from lyrics import process_result
 from lyrics import run_mp
 from lyrics import sources
 
@@ -336,16 +339,87 @@ def test_run_mp(monkeypatch):
     Test `run_mp()`, which should concurrently search for the lyrics of a list
     of songs, source by source.
     """
-    pytest.skip('Not implemented')
+    monkeypatch.setattr(lyrics, 'get_lyrics', fake_getlyrics_run_mp)
+
+    # fake_getlyrics will return: None, a Result with 'random_source' and a
+    # Result with `None` as source (i.e. the lyrics were not found).
+    songs = [False, azlyrics, None]
+    start_time = time.time()
+    CONFIG['jobcount'] = len(songs)
+    stats = run_mp(songs)
+    assert time.time() - start_time < len(songs)
+
+    stats = stats.calculate()
+    assert stats['found'] == 1
+    assert stats['notfound'] == 1
 
 
-def test_process_result():
+def test_process_result(mp3file):
     """
     Check that the `process_result()` function can write the lyrics to the
     corresponding mp3 and return wheter or not they were found.
     """
-    pytest.skip('Not implemented')
+    artist = 'lör'
+    title = 'requiem'
+    song_lyrics = 'hello world'
+    tag_mp3(mp3file, artist=artist, title=title)
+    song = Song.from_filename(mp3file)
+    song.lyrics = song_lyrics
+
+    result_notfound = Result(song=song, source=None, runtimes={})
+    assert not process_result(result_notfound)
+    assert not Song.from_filename(mp3file).lyrics
+
+    result_found = Result(song=song, source='whatever', runtimes={})
+    assert process_result(result_found)
+    assert Song.from_filename(mp3file).lyrics == song_lyrics
 
 
-def test_run():
-    pytest.skip('Not implemented')
+def test_run_one_song(mp3file, monkeypatch):
+    """
+    Test the run() function when passing a single song object. It should call
+    get_lyrics_threaded to search for lyrics in all the sources at the same
+    time.
+    """
+    song_lyrics = 'some lyrics here'
+    def fake_getlyricsthreaded(songs):
+        song.lyrics = song_lyrics
+        return Result(song=song, source='whatever', runtimes={})
+
+    song = Song.from_filename(mp3file)
+    monkeypatch.setattr(lyrics, 'get_lyrics_threaded', fake_getlyricsthreaded)
+    lyrics.run(song)
+    assert Song.from_filename(mp3file).lyrics == song_lyrics
+
+
+def test_run_multiple_songs(mp3file, monkeypatch):
+    """
+    Test the run() function when passing multiple songs. This time it should
+    call run_mp() on the entire collection.
+    """
+    def fake_runmp(songs):
+        for i, song in enumerate(songs):
+            tag_mp3(song.filename, lyrics=f'lyrics{i}')
+
+    other_mp3 = tempfile.mktemp()
+    shutil.copy(mp3file, other_mp3)
+    mp3files = [mp3file, other_mp3]
+    songs = [Song.from_filename(f) for f in mp3files]
+    monkeypatch.setattr(lyrics, 'run_mp', fake_runmp)
+    lyrics.run(songs)
+    for i, filename in enumerate(mp3files):
+        assert Song.from_filename(filename).lyrics == f'lyrics{i}'
+
+
+def fake_getlyrics_run_mp(source):
+    """
+    Convenience function to replace the standard `get_lyrics()` that is used by
+    `test_run_mp()`.
+    """
+    time.sleep(1)
+    if source is False:
+        return None
+
+    runtimes = {azlyrics: 1}
+    song = Song.from_info(artist='breaking benjamin', title='i will not bow')
+    return Result(song, source, runtimes)
