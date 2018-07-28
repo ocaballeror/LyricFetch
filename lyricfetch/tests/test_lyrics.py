@@ -73,7 +73,7 @@ def test_get_lastfm(lastfm_key):
     from the method requested.
     """
     track = get_lastfm('track.getInfo', lastfm_key=lastfm_key,
-                       artist="Metallica", track="Master of puppets")
+                       artist='Metallica', track='Master of puppets')
     assert 'track' in track
     assert 'name' in track['track']
     assert 'artist' in track['track']
@@ -208,7 +208,7 @@ def test_getlyrics_from_info():
     """
     Check that the main method can actually return a result with lyrics.
     """
-    song = Song.from_info(artist="Iron maiden", title="Hallowed be thy name")
+    song = Song.from_info(artist='Iron maiden', title='Hallowed be thy name')
     result = get_lyrics(song)
     assert 'hallowed be thy name' in result.song.lyrics.lower()
 
@@ -221,7 +221,7 @@ def test_getlyrics_from_song(mp3file):
     tag_mp3(mp3file, artist='YOB', title='Our raw heart')
     song = Song.from_filename(mp3file)
     result = get_lyrics(song)
-    assert "my restless ghost" in result.song.lyrics.lower()
+    assert 'my restless ghost' in result.song.lyrics.lower()
 
 
 def test_getlyrics_dont_overwrite(mp3file):
@@ -248,7 +248,7 @@ def test_getlyrics_overwrite(mp3file):
     CONFIG['overwrite'] = True
     result = get_lyrics(song)
     assert result.song.lyrics != placeholder
-    assert "forget the taste of my own tongue" in result.song.lyrics.lower()
+    assert 'forget the taste of my own tongue' in result.song.lyrics.lower()
 
 
 def test_lyrthread_run():
@@ -374,6 +374,7 @@ def test_run_one_song(mp3file, monkeypatch):
     time.
     """
     song_lyrics = 'some lyrics here'
+
     def fake_getlyricsthreaded(songs):
         song.lyrics = song_lyrics
         return Result(song=song, source='whatever', runtimes={})

@@ -210,7 +210,7 @@ def darklyrics(song):
         next_sibling = header.next_sibling
         if song.lower().find(title.lower()) != -1:
             while next_sibling is not None and\
-                  (next_sibling.name is None or next_sibling.name != 'h3'):
+                    (next_sibling.name is None or next_sibling.name != 'h3'):
                 if next_sibling.name is None:
                     text += str(next_sibling)
                 next_sibling = next_sibling.next_sibling
@@ -528,7 +528,7 @@ def letras(song):
         br.replace_with('\n')
 
     for p in content.find_all('p'):
-        text += p.get_text()+'\n\n'
+        text += p.get_text() + '\n\n'
 
     return text.strip()
 
@@ -601,10 +601,10 @@ class Record:
         return self.__repr__()
 
     def __repr__(self):
-        return f'''Successes: {self.successes}
+        return f"""Successes: {self.successes}
 Fails: {self.fails}
 Success rate: {self.success_rate():.2f}%
-Average runtime: {avg(self.runtimes):.2f}s'''
+Average runtime: {avg(self.runtimes):.2f}s"""
 
     def add_runtime(self, runtime):
         """
@@ -620,7 +620,8 @@ Average runtime: {avg(self.runtimes):.2f}s'''
         if self.successes + self.fails == 0:
             success_rate = 0
         else:
-            success_rate = (self.successes*100/(self.successes + self.fails))
+            total_attempts = self.successes + self.fails
+            success_rate = (self.successes * 100 / total_attempts)
 
         return success_rate
 
@@ -707,7 +708,7 @@ class Stats:
         total_time = '%d:%02d:%02d' % (stats['total_time'] / 3600,
                                        (stats['total_time'] / 3600) / 60,
                                        (stats['total_time'] % 3600) % 60)
-        output = '''\
+        output = """\
 Total runtime: {total_time}
     Lyrics found: {found}
     Lyrics not found:{notfound}
@@ -722,7 +723,7 @@ Total runtime: {total_time}
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 xxx    PER WEBSITE STATS:      xxx
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-'''
+"""
         output = output.format(total_time=total_time,
                                found=stats['found'],
                                notfound=stats['notfound'],
@@ -1069,15 +1070,15 @@ def process_result(result):
     if found:
         if hasattr(result.song, 'filename'):
             audiofile = eyed3.load(result.song.filename)
-            audiofile.tag.lyrics.set(u''+result.song.lyrics)
+            audiofile.tag.lyrics.set(result.song.lyrics)
             audiofile.tag.save()
             print(f'{id_source(result.source)} Lyrics added for {result.song}')
         else:
-            print(f'''FROM {id_source(result.source, full=True)}
+            print(f"""FROM {id_source(result.source, full=True)}
 
 {result.song.lyrics}
 -----------------------------------------------------------------------------\
-''')
+""")
     else:
         print(f'Lyrics for {result.song} not found')
 
@@ -1097,7 +1098,7 @@ def run(songs):
         end = time.time()
         if CONFIG['print_stats']:
             stats.print_stats()
-        total_time = end-start
+        total_time = end - start
         total_time = '%d:%02d:%02d' % (total_time / 3600,
                                        (total_time / 3600) / 60,
                                        (total_time % 3600) % 60)
@@ -1114,7 +1115,7 @@ def run_mp(songs):
         bad = open('notfound', 'w')
 
     logger.debug('Launching a pool of %d processes\n', CONFIG['jobcount'])
-    chunksize = math.ceil(len(songs)/os.cpu_count())
+    chunksize = math.ceil(len(songs) / os.cpu_count())
     try:
         with Pool(CONFIG['jobcount']) as pool:
             for result in pool.imap_unordered(get_lyrics, songs, chunksize):
@@ -1130,7 +1131,7 @@ def run_mp(songs):
                         good.write(f'{id_source(source)}: {result.song}\n')
                         good.flush()
                     else:
-                        bad.write(str(result.song)+'\n')
+                        bad.write(str(result.song) + '\n')
                         bad.flush()
 
     finally:
@@ -1180,26 +1181,26 @@ def parse_argv():
     variables declared above.
     """
     parser = argparse.ArgumentParser(description='Find lyrics for a set of mp3'
-            ' files and embed them as metadata')
-    parser.add_argument('-j', '--jobs', help='Number of parallel processes', type=int,
-            metavar='N', default=1)
+                                     ' files and embed them as metadata')
+    parser.add_argument('-j', '--jobs', help='Number of parallel processes',
+                        type=int, metavar='N', default=1)
     parser.add_argument('-o', '--overwrite', help='Overwrite lyrics of songs'
-            ' that already have them', action='store_true')
+                        ' that already have them', action='store_true')
     parser.add_argument('-s', '--stats', help='Print a series of statistics at'
-            ' the end of the execution', action='store_true')
+                        ' the end of the execution', action='store_true')
     parser.add_argument('-v', '--verbose', help='Set verbosity level (pass it'
-            ' up to three times)', action='count')
+                        ' up to three times)', action='count')
     parser.add_argument('-d', '--debug', help='Enable debug output',
-            action='store_true')
+                        action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-r', '--recursive', help='Recursively search for'
-            ' mp3 files', nargs='?', const='.')
+                       ' mp3 files', nargs='?', const='.')
     group.add_argument('-n', '--by-name', help='A list of song names in'
-            " 'artist - title' format", nargs='*')
+                       " 'artist - title' format", nargs='*')
     group.add_argument('--from-file', help='Read a list of files from a text'
-            ' file', type=str)
+                       ' file', type=str)
     parser.add_argument('files', help='The mp3 files to search lyrics for',
-            nargs='*')
+                        nargs='*')
 
     args = parser.parse_args()
 
@@ -1233,7 +1234,7 @@ def parse_argv():
         if args.files:
             mp3files = args.files
         elif args.recursive:
-            mp3files = glob.iglob(args.recursive+'/**/*.mp3', recursive=True)
+            mp3files = glob.iglob(args.recursive + '/**/*.mp3', recursive=True)
         else:
             raise ValueError('No files specified')
 

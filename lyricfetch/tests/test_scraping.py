@@ -37,22 +37,20 @@ def check_site_available(site, secure=False):
     return True
 
 
-@pytest.mark.parametrize('site,artist,title',
-    [
-        (azlyrics, 'slayer', 'live undead'),
-        (darklyrics, 'anthrax', 'i am the law'),
-        (genius, 'rammstein', 'rosenrot'),
-        (letras, 'havok', 'afterburner'),
-        (lyricscom, 'dark tranquillity', 'atom heart 243.5'),
-        (lyricsmode, 'motorhead', 'like a nightmare'),
-        (lyricswikia, 'in flames', 'everything counts'),
-        (metalarchives, 'black sabbath', 'master of insanity'),
-        (metrolyrics, 'flotsam and jetsam', 'fade to black'),
-        (musixmatch, 'pantera', 'psycho holiday'),
-        (songlyrics, 'sylosis', 'stained humanity'),
-        (vagalume, 'epica', 'unchain utopia'),
-    ]
-)
+@pytest.mark.parametrize('site,artist,title', [
+    (azlyrics, 'slayer', 'live undead'),
+    (darklyrics, 'anthrax', 'i am the law'),
+    (genius, 'rammstein', 'rosenrot'),
+    (letras, 'havok', 'afterburner'),
+    (lyricscom, 'dark tranquillity', 'atom heart 243.5'),
+    (lyricsmode, 'motorhead', 'like a nightmare'),
+    (lyricswikia, 'in flames', 'everything counts'),
+    (metalarchives, 'black sabbath', 'master of insanity'),
+    (metrolyrics, 'flotsam and jetsam', 'fade to black'),
+    (musixmatch, 'pantera', 'psycho holiday'),
+    (songlyrics, 'sylosis', 'stained humanity'),
+    (vagalume, 'epica', 'unchain utopia'),
+])
 def test_scrap(site, artist, title):
     """
     Test all the scraping methods, each of which should return a set of lyrics

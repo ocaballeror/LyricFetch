@@ -13,9 +13,9 @@ setup(
     name='lyricfetch',
     version=version,
     description='Fetch song lyrics from the internet',
-    long_description='''Fetch lyrics from a variety of sources and save them as
+    long_description="""Fetch lyrics from a variety of sources and save them as
         metadata into their corresponding mp3 files, or simply display them on
-        the screen.''',
+        the screen.""",
     url='https://github.com/ocaballeror/Lyricfetch',
     author='Oscar Caballero',
     author_email='ocaballeror@gmail.com',
