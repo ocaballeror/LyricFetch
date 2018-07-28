@@ -1,9 +1,13 @@
 """
 Setup module.
 """
+import re
+from os.path import join
 from setuptools import setup
 
-version = '1.0'
+with open(join('lyricfetch', '__init__.py')) as f:
+    line = next(l for l in f if l.startswith('__version__'))
+    version = re.match('__version__ = [\'"]([^\'"]+)[\'"]', line).group(1)
 
 setup(
     name='lyricfetch',

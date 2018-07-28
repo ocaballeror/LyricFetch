@@ -12,6 +12,8 @@ CONFIG = {
 URLESCAPE = '.¿?%_@,;&\\/()\'"-!¡'
 URLESCAPES = URLESCAPE + ' '
 
+__version__ = '1.0.0'
+
 from .lyrics import Song, Stats, Result
 from .lyrics import azlyrics, metrolyrics, lyricswikia, darklyrics
 from .lyrics import metalarchives, genius, musixmatch, songlyrics
