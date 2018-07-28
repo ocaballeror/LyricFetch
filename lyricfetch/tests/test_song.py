@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from conftest import tag_mp3
-from lyrics import Song
+from lyricfetch import Song
 
 def test_song_from_filename(mp3file):
     """

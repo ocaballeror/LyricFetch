@@ -2,6 +2,7 @@
 Module to test the different CLI arguments that can be passed.
 """
 import json
+import os
 import random
 import shutil
 import sys
@@ -12,15 +13,16 @@ from pathlib import Path
 
 import pytest
 from py.path import local as pypath
+from conftest import chdir
 from conftest import tag_mp3
 
-import lyrics
-from lyrics import CONFIG
-from lyrics import Song
-from lyrics import load_config
-from lyrics import load_from_file
-from lyrics import main
-from lyrics import parse_argv
+from lyricfetch import Song
+from lyricfetch import lyrics
+from lyricfetch.lyrics import CONFIG
+from lyricfetch.lyrics import load_config
+from lyricfetch.lyrics import load_from_file
+from lyricfetch.lyrics import main
+from lyricfetch.lyrics import parse_argv
 
 
 @pytest.mark.parametrize('arg,config,klass', [
@@ -80,7 +82,7 @@ def test_argv_recursive(monkeypatch, mp3file):
     Check that the `-r` flag searches recursively for mp3 files and returns a
     list with all the names found.
     """
-    tmpdir = Path(tempfile.mkdtemp(dir='.'))
+    tmpdir = Path(tempfile.mkdtemp())
     tempdir_dir = tmpdir / 'dir'
     tempdir_dir.mkdir()
     mp3s = [
@@ -93,8 +95,9 @@ def test_argv_recursive(monkeypatch, mp3file):
         shutil.copyfile(mp3file, mp3)
 
     monkeypatch.setattr(sys, 'argv', [__file__, '-r'])
-    songs = parse_argv()
-    songs = set(Path(s.filename) for s in songs)
+    with chdir(str(tmpdir)):
+        songs = parse_argv()
+        songs = set(Path(s.filename).absolute() for s in songs)
     try:
         assert set(mp3s) == songs
     finally:

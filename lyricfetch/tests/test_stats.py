@@ -4,10 +4,12 @@ Tests for the `Stats` and `Record` classes.
 import sys
 import pytest
 
-from lyrics import Record, Stats
-from lyrics import avg
-from lyrics import azlyrics
-from lyrics import metrolyrics
+from lyricfetch import Stats
+from lyricfetch import azlyrics
+from lyricfetch import metrolyrics
+
+from lyricfetch.lyrics import Record
+from lyricfetch.lyrics import avg
 
 
 def some_source():

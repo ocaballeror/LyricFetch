@@ -15,25 +15,25 @@ import pytest
 
 from conftest import tag_mp3
 
-import lyrics
-from lyrics import CONFIG
-from lyrics import LyrThread
-from lyrics import Result
-from lyrics import Song
-from lyrics import azlyrics
-from lyrics import exclude_sources
-from lyrics import get_lastfm
-from lyrics import get_lyrics
-from lyrics import get_lyrics_threaded
-from lyrics import get_url
-from lyrics import id_source
-from lyrics import normalize
-from lyrics import process_result
-from lyrics import run_mp
-from lyrics import sources
+from lyricfetch import CONFIG
+from lyricfetch import Result
+from lyricfetch import Song
+from lyricfetch import azlyrics
+from lyricfetch import exclude_sources
+from lyricfetch import get_lastfm
+from lyricfetch import get_lyrics
+from lyricfetch import id_source
+from lyricfetch import lyrics
+from lyricfetch.lyrics import LyrThread
+from lyricfetch.lyrics import get_lyrics_threaded
+from lyricfetch.lyrics import get_url
+from lyricfetch.lyrics import normalize
+from lyricfetch.lyrics import process_result
+from lyricfetch.lyrics import run_mp
+from lyricfetch.lyrics import sources
 
 
-CONFIG_FILE = '../config.json'
+CONFFILE = '../config.json'
 
 
 def test_get_url():

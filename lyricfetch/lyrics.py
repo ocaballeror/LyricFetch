@@ -43,6 +43,10 @@ from multiprocessing import Pool
 import eyed3
 from bs4 import BeautifulSoup
 
+from . import CONFIG
+from . import CONFFILE
+from . import URLESCAPE
+from . import URLESCAPES
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -59,16 +63,6 @@ logger.setLevel(logging.INFO)
 
 # Discard eyed3 messages unless they're important
 logging.getLogger('eyed3.mp3.headers').setLevel(logging.CRITICAL)
-
-CONFFILE = './config.json'
-CONFIG = {
-    'jobcount': 1,
-    'overwrite': False,
-    'errno': 0,
-    'print_stats': False,
-    'debug': False,
-    'lastfm_key': ''
-}
 
 
 def get_url(url, parser='html'):
@@ -123,11 +117,6 @@ def get_lastfm(method, lastfm_key='', **kwargs):
         return ''
 
     return response
-
-
-# Contains the characters usually removed or replaced in URLS
-URLESCAPE = '.¿?%_@,;&\\/()\'"-!¡'
-URLESCAPES = URLESCAPE + ' '
 
 
 def normalize(string, chars_to_remove=None, replacement=''):

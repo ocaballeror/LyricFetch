@@ -7,16 +7,13 @@ import shutil
 import sys
 import tempfile
 import urllib.request
+from contextlib import contextmanager
 
 import pytest
 import eyed3
 
-if '..' not in sys.path:
-    sys.path.append('..')
-
-from lyrics import CONFIG
-
-CONFIG_FILE = '../config.json'
+from lyricfetch import CONFIG
+from lyricfetch import CONFFILE
 
 
 @pytest.fixture(scope='session')
@@ -52,9 +49,9 @@ def mp3file(_mp3file):
 
 @pytest.fixture(scope='session')
 def lastfm_key():
-    if not os.path.isfile(CONFIG_FILE):
+    if not os.path.isfile(CONFFILE):
         pytest.skip('No configuration file')
-    with open(CONFIG_FILE) as conffile:
+    with open(CONFFILE) as conffile:
         config = json.load(conffile)
         key = config['lastfm_key']
     if not key:
@@ -74,3 +71,13 @@ def tag_mp3(filename, **kwargs):
         else:
             setattr(audiofile.tag, key, arg)
     audiofile.tag.save()
+
+
+@contextmanager
+def chdir(newdir):
+    prevdir = os.getcwd()
+    os.chdir(os.path.expanduser(newdir))
+    try:
+        yield
+    finally:
+        os.chdir(prevdir)

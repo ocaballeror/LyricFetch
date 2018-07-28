@@ -10,13 +10,13 @@ import pytest
 
 from conftest import lastfm_key
 
-from lyrics import Song
-from lyrics import id_source
-from lyrics import get_url
-from lyrics import azlyrics, metrolyrics, lyricswikia
-from lyrics import darklyrics, metalarchives, genius
-from lyrics import musixmatch, songlyrics, vagalume
-from lyrics import letras, lyricsmode, lyricscom
+from lyricfetch import Song
+from lyricfetch import id_source
+from lyricfetch import azlyrics, metrolyrics, lyricswikia
+from lyricfetch import darklyrics, metalarchives, genius
+from lyricfetch import musixmatch, songlyrics, vagalume
+from lyricfetch import letras, lyricsmode, lyricscom
+from lyricfetch.lyrics import get_url
 
 
 def check_site_available(site, secure=False):
