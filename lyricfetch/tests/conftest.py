@@ -4,7 +4,6 @@ Common fixtures and helper functions.
 import json
 import os
 import shutil
-import sys
 import tempfile
 import urllib.request
 from contextlib import contextmanager

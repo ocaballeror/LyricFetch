@@ -2,13 +2,11 @@
 Module to test the different CLI arguments that can be passed.
 """
 import json
-import os
 import random
 import shutil
 import sys
 import tempfile
 from tempfile import NamedTemporaryFile
-from argparse import ArgumentError
 from pathlib import Path
 
 import pytest
@@ -74,7 +72,6 @@ def test_argv_invalid_jobs(monkeypatch, num):
     with pytest.raises(ValueError):
         parse_argv()
     assert CONFIG['jobcount'] == current_value
-
 
 
 def test_argv_recursive(monkeypatch, mp3file):

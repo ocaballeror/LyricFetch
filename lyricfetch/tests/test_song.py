@@ -1,15 +1,12 @@
 """
 Tests for the `Song` class.
 """
-import os
-import sys
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 
-import pytest
-
 from conftest import tag_mp3
 from lyricfetch import Song
+
 
 def test_song_from_filename(mp3file):
     """
@@ -40,6 +37,7 @@ def test_song_from_filename_errors():
 
     with TemporaryDirectory() as temp:
         assert Song.from_filename(temp) is None
+
 
 def test_song_from_info():
     """

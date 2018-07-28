@@ -1,15 +1,12 @@
 """
 Tests for the specific scraping functions.
 """
-import sys
-import urllib.request
 from urllib.error import URLError
 from http.client import RemoteDisconnected
 
 import pytest
 
 from conftest import lastfm_key
-
 from lyricfetch import Song
 from lyricfetch import id_source
 from lyricfetch import azlyrics, metrolyrics, lyricswikia
@@ -20,14 +17,15 @@ from lyricfetch.lyrics import get_url
 
 
 def check_site_available(site, secure=False):
-    print('sup')
+    """
+    Helper function to check if a specific website is available.
+    """
     try:
         if not isinstance(site, str):
             url = id_source(site, full=True).lower()
         else:
             url = site
         prefix = 'https' if secure else 'http'
-        print(url)
         get_url(f'{prefix}://{url}', parser='raw')
     except URLError as error:
         if secure:

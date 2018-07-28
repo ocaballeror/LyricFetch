@@ -1,20 +1,15 @@
 """
 Main tests module.
 """
-import json
-import os
 import shutil
-import sys
 import tempfile
 import time
-import urllib.request
 from urllib.error import HTTPError
 from queue import Queue
 
 import pytest
 
 from conftest import tag_mp3
-
 from lyricfetch import CONFIG
 from lyricfetch import Result
 from lyricfetch import Song
@@ -31,9 +26,6 @@ from lyricfetch.lyrics import normalize
 from lyricfetch.lyrics import process_result
 from lyricfetch.lyrics import run_mp
 from lyricfetch.lyrics import sources
-
-
-CONFFILE = '../config.json'
 
 
 def test_get_url():

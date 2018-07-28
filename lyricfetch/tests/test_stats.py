@@ -1,9 +1,6 @@
 """
 Tests for the `Stats` and `Record` classes.
 """
-import sys
-import pytest
-
 from lyricfetch import Stats
 from lyricfetch import azlyrics
 from lyricfetch import metrolyrics
