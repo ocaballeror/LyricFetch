@@ -60,10 +60,10 @@ def test_scrap(site, artist, title):
     Test all the scraping methods, each of which should return a set of lyrics
     for a known-to-be-found song.
     """
-    lastfm_key()
     if not check_site_available(site):
         pytest.skip('This site is not avialable')
     if site is darklyrics:
+        lastfm_key()
         extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
         if not check_site_available(extra_check):
             pytest.skip('Darklyrics blocked you again')
