@@ -3,6 +3,9 @@ tags
 .tags
 *~
 __pycache__
+.pytest_cache/
+.tox/
+*.egg-info/
 *.pyc
 
 debuglog
