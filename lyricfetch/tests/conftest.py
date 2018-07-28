@@ -1,7 +1,6 @@
 """
 Common fixtures and helper functions.
 """
-import json
 import os
 import shutil
 import tempfile
@@ -12,7 +11,6 @@ import pytest
 import eyed3
 
 from lyricfetch import CONFIG
-from lyricfetch import CONFFILE
 
 
 @pytest.fixture(scope='session')
@@ -46,16 +44,11 @@ def mp3file(_mp3file):
         os.unlink(file_copy)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def lastfm_key():
-    if not os.path.isfile(CONFFILE):
-        pytest.skip('No configuration file')
-    with open(CONFFILE) as conffile:
-        config = json.load(conffile)
-        key = config['lastfm_key']
+    key = CONFIG['lastfm_key']
     if not key:
         pytest.skip('No lastfm key configured')
-    CONFIG['lastfm_key'] = key
     return key
 
 
