@@ -28,6 +28,10 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
     ],
     packages=['lyricfetch'],
+    package_data={
+        'lyricfetch': ['config.json']
+    },
+    include_package_data=True,
     entry_points={
         'console_scripts': ['lyricfetch=lyricfetch.lyrics:main']
     },

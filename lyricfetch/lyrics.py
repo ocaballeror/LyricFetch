@@ -44,7 +44,6 @@ import eyed3
 from bs4 import BeautifulSoup
 
 from . import CONFIG
-from . import CONFFILE
 from . import URLESCAPE
 from . import URLESCAPES
 
@@ -1142,18 +1141,6 @@ def run_mp(songs):
     return stats
 
 
-def load_config():
-    """
-    Load the configuration file.
-    """
-    try:
-        with open(CONFFILE, 'r') as conffile:
-            CONFIG.update(json.load(conffile))
-    except Exception:
-        logger.warning('Could not load configuration file')
-        logger.debug(CONFIG)
-
-
 def load_from_file(filename):
     """
     Load a list of filenames from an external text file.
@@ -1260,7 +1247,6 @@ def main():
         return 1
 
     logger.debug('Running with %s', songs)
-    load_config()
     try:
         run(songs)
     except KeyboardInterrupt:

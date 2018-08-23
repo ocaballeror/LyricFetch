@@ -1,7 +1,21 @@
 import os
+import json
+from pathlib import Path
 
+def _load_config():
+    here = Path(os.path.realpath(__file__))
+    config_name = here.parent / 'config.json'
+    with open(config_name) as config_file:
+        CONFIG.update(json.load(config_file))
 
-CONFFILE = '../config.json'
+    for key in CONFIG:
+        environ_key = 'LFETCH_' + key.upper()
+        if environ_key in os.environ:
+            CONFIG[key] = os.environ.get(environ_key)
+
+# Contains the characters usually removed or replaced in URLS
+URLESCAPE = '.¿?%_@,;&\\/()\'"-!¡'
+URLESCAPES = URLESCAPE + ' '
 CONFIG = {
     'jobcount': 1,
     'overwrite': False,
@@ -10,15 +24,8 @@ CONFIG = {
     'debug': False,
     'lastfm_key': ''
 }
-for key in CONFIG:
-    environ_key = 'LFETCH_' + key.upper()
-    if environ_key in os.environ:
-        print(environ_key)
-        CONFIG[key] = os.environ.get(environ_key)
 
-# Contains the characters usually removed or replaced in URLS
-URLESCAPE = '.¿?%_@,;&\\/()\'"-!¡'
-URLESCAPES = URLESCAPE + ' '
+_load_config()
 
 __version__ = '1.0.0'
 
