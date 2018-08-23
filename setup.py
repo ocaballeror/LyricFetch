@@ -28,6 +28,9 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
     ],
     packages=['lyricfetch'],
+    entry_points={
+        'console_scripts': ['lyricfetch=lyricfetch.lyrics:main']
+    },
     install_requires=[
         'urllib3>=1.22',
         'beautifulsoup4>=4.5.3',
