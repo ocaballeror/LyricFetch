@@ -2,7 +2,10 @@
 tags
 .tags
 *~
-__pycache__
+
+build/
+dist/
+__pycache__/
 .pytest_cache/
 .tox/
 *.egg-info/

@@ -31,6 +31,7 @@ setup(
     entry_points={
         'console_scripts': ['lyricfetch=lyricfetch.lyrics:main']
     },
+    python_requires='>=3.6',
     install_requires=[
         'urllib3>=1.22',
         'beautifulsoup4>=4.5.3',
