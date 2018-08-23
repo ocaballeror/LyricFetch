@@ -27,7 +27,7 @@ CONFIG = {
 
 _load_config()
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 from .lyrics import Song, Stats, Result
 from .lyrics import azlyrics, metrolyrics, lyricswikia, darklyrics
