@@ -2,7 +2,9 @@
 tags
 .tags
 *~
+*@neomake*
 
+config.json
 build/
 dist/
 __pycache__/
@@ -10,12 +12,3 @@ __pycache__/
 .tox/
 *.egg-info/
 *.pyc
-
-debuglog
-errlog
-found
-notfound
-notfoundatall
-supernotfound
-
-*@neomake*
