@@ -5,8 +5,9 @@ from pathlib import Path
 def _load_config():
     here = Path(os.path.realpath(__file__))
     config_name = here.parent / 'config.json'
-    with open(config_name) as config_file:
-        CONFIG.update(json.load(config_file))
+    if config_name.is_file():
+        with open(config_name) as config_file:
+            CONFIG.update(json.load(config_file))
 
     for key in CONFIG:
         environ_key = 'LFETCH_' + key.upper()
