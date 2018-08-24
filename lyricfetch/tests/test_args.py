@@ -1,7 +1,6 @@
 """
 Module to test the different CLI arguments that can be passed.
 """
-import json
 import random
 import shutil
 import sys
@@ -17,7 +16,6 @@ from conftest import tag_mp3
 from lyricfetch import Song
 from lyricfetch import lyrics
 from lyricfetch.lyrics import CONFIG
-from lyricfetch.lyrics import load_config
 from lyricfetch.lyrics import load_from_file
 from lyricfetch.lyrics import main
 from lyricfetch.lyrics import parse_argv
@@ -219,24 +217,6 @@ def test_argv_incompatible(monkeypatch, args):
     monkeypatch.setattr(sys, 'argv', new_args)
     with pytest.raises(SystemExit):
         parse_argv()
-
-
-def test_load_config(monkeypatch):
-    """
-    Test the `load_config()` function, which should read a json config file and
-    update the CONFIG global dictionary accordingly.
-    """
-    config_dummy = {'test': True, 'othertest': 'stuff'}
-    with NamedTemporaryFile('w') as tmp:
-        tmp.write(json.dumps(config_dummy))
-        tmp.flush()
-
-        monkeypatch.setattr(lyrics, 'CONFFILE', tmp.name)
-        load_config()
-        assert 'test' in CONFIG
-        assert 'othertest' in CONFIG
-        assert CONFIG['test'] == config_dummy['test']
-        assert CONFIG['othertest'] == config_dummy['othertest']
 
 
 def test_load_from_file_errors(tmpdir):
