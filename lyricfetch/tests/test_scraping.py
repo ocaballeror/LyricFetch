@@ -39,7 +39,6 @@ def check_site_available(site, secure=False):
 
 @pytest.mark.parametrize('site,artist,title', [
     (azlyrics, 'slayer', 'live undead'),
-    (darklyrics, 'anthrax', 'i am the law'),
     (genius, 'rammstein', 'rosenrot'),
     (letras, 'havok', 'afterburner'),
     (lyricscom, 'dark tranquillity', 'atom heart 243.5'),
@@ -58,11 +57,23 @@ def test_scrape(site, artist, title):
     """
     if not check_site_available(site):
         pytest.skip('This site is not available')
-    if site is darklyrics:
-        lastfm_key()
-        extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
-        if not check_site_available(extra_check):
-            pytest.skip('Darklyrics blocked you again')
     song = Song.from_info(artist=artist, title=title)
     lyrics = site(song)
+    assert lyrics != ''
+
+
+@pytest.mark.parametrize('artist,title', [
+    ('anthrax', 'i am the law'),
+])
+def test_scrape_darklyrics(artist, title):
+    """
+    Test scraping darklyrics, whose banning policy requires some special checks
+    to be performed.
+    """
+    lastfm_key()
+    extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
+    if not check_site_available(extra_check):
+        pytest.skip('Darklyrics blocked you again')
+    song = Song.from_info(artist=artist, title=title)
+    lyrics = darklyrics(song)
     assert lyrics != ''
