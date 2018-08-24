@@ -443,7 +443,7 @@ def vagalume(song):
 
     url = 'https://www.vagalume.com.br/{}/{}.html'.format(artist, title)
     soup = get_url(url)
-    body = soup.select('div[itemprop="description"]')
+    body = soup.select('div#lyrics')
     if body == []:
         return ''
 
