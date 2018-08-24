@@ -2,6 +2,7 @@ import os
 import json
 from pathlib import Path
 
+
 def _load_config():
     here = Path(os.path.realpath(__file__))
     config_name = here.parent / 'config.json'
@@ -13,6 +14,7 @@ def _load_config():
         environ_key = 'LFETCH_' + key.upper()
         if environ_key in os.environ:
             CONFIG[key] = os.environ.get(environ_key)
+
 
 # Contains the characters usually removed or replaced in URLS
 URLESCAPE = '.¿?%_@,;&\\/()\'"-!¡'
