@@ -51,13 +51,13 @@ def check_site_available(site, secure=False):
     (songlyrics, 'sylosis', 'stained humanity'),
     (vagalume, 'epica', 'unchain utopia'),
 ])
-def test_scrap(site, artist, title):
+def test_scrape(site, artist, title):
     """
     Test all the scraping methods, each of which should return a set of lyrics
     for a known-to-be-found song.
     """
     if not check_site_available(site):
-        pytest.skip('This site is not avialable')
+        pytest.skip('This site is not available')
     if site is darklyrics:
         lastfm_key()
         extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'

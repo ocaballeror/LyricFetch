@@ -123,8 +123,8 @@ def normalize(string, chars_to_remove=None, replacement=''):
     Remove accented characters and such.
 
     The argument chars_to_remove is a dictionary that maps a string of chars to
-    a single character. Every ocurrence of every character in the first string
-    will be replaced by that second charcter passed as value. If only one
+    a single character. Every occurrence of every character in the first string
+    will be replaced by that second character passed as value. If only one
     mapping is desired, chars_to_remove may be a single string, but a third
     parameter, replacement, must be provided to complete the translation.
     """

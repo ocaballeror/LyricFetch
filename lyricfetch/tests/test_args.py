@@ -234,7 +234,7 @@ def test_load_from_file_errors(tmpdir):
 
 def test_main_errors(monkeypatch):
     """
-    Test the different error conditions that can occurr when calling `main()`.
+    Test the different error conditions that can occur when calling `main()`.
     """
     def empty_set():
         return set()
