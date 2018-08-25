@@ -13,7 +13,7 @@ from lyricfetch import azlyrics, metrolyrics, lyricswikia
 from lyricfetch import darklyrics, metalarchives, genius
 from lyricfetch import musixmatch, songlyrics, vagalume
 from lyricfetch import letras, lyricsmode, lyricscom
-from lyricfetch.lyrics import get_url
+from lyricfetch.scraping import get_url
 
 
 def check_site_available(site, secure=False):

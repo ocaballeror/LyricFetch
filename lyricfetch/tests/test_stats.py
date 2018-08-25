@@ -5,8 +5,8 @@ from lyricfetch import Stats
 from lyricfetch import azlyrics
 from lyricfetch import metrolyrics
 
-from lyricfetch.lyrics import Record
-from lyricfetch.lyrics import avg
+from lyricfetch.stats import Record
+from lyricfetch.stats import avg
 
 
 def some_source():

@@ -13,12 +13,12 @@ from py.path import local as pypath
 from conftest import chdir
 from conftest import tag_mp3
 
+import lyricfetch
 from lyricfetch import Song
-from lyricfetch import lyrics
 from lyricfetch.lyrics import CONFIG
-from lyricfetch.lyrics import load_from_file
-from lyricfetch.lyrics import main
-from lyricfetch.lyrics import parse_argv
+from lyricfetch.cli import load_from_file
+from lyricfetch.cli import main
+from lyricfetch.cli import parse_argv
 
 
 @pytest.mark.parametrize('arg,config,klass', [
@@ -249,14 +249,14 @@ def test_main_errors(monkeypatch):
         raise KeyboardInterrupt
 
     # Make parse_argv() return an empty set
-    monkeypatch.setattr(lyrics, 'parse_argv', empty_set)
+    monkeypatch.setattr(lyricfetch.cli, 'parse_argv', empty_set)
     assert main() == 1
 
     # Make parse_argv() raise a ValueError
-    monkeypatch.setattr(lyrics, 'parse_argv', value_error)
+    monkeypatch.setattr(lyricfetch.cli, 'parse_argv', value_error)
     assert main() == 1
 
     # Interrupt the process with a keyboard interrupt
-    monkeypatch.setattr(lyrics, 'parse_argv', filled_set)
-    monkeypatch.setattr(lyrics, 'run', fake_run)
+    monkeypatch.setattr(lyricfetch.cli, 'parse_argv', filled_set)
+    monkeypatch.setattr(lyricfetch.cli, 'run', fake_run)
     assert main() == 1

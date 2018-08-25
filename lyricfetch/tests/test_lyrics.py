@@ -18,14 +18,14 @@ from lyricfetch import exclude_sources
 from lyricfetch import get_lastfm
 from lyricfetch import get_lyrics
 from lyricfetch import id_source
+from lyricfetch import sources
 from lyricfetch import lyrics
 from lyricfetch.lyrics import LyrThread
 from lyricfetch.lyrics import get_lyrics_threaded
-from lyricfetch.lyrics import get_url
-from lyricfetch.lyrics import normalize
 from lyricfetch.lyrics import process_result
 from lyricfetch.lyrics import run_mp
-from lyricfetch.lyrics import sources
+from lyricfetch.scraping import get_url
+from lyricfetch.scraping import normalize
 
 
 def test_get_url():

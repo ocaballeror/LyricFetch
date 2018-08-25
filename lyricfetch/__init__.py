@@ -1,5 +1,9 @@
+"""
+Init.
+"""
 import os
 import json
+import logging
 from pathlib import Path
 
 
@@ -32,8 +36,31 @@ _load_config()
 
 __version__ = '1.0.2'
 
-from .lyrics import Song, Stats, Result
-from .lyrics import azlyrics, metrolyrics, lyricswikia, darklyrics
-from .lyrics import metalarchives, genius, musixmatch, songlyrics
-from .lyrics import vagalume, letras, lyricsmode, lyricscom
-from .lyrics import exclude_sources, get_lastfm, get_lyrics, id_source
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+# Discard eyed3 messages unless they're important
+logging.getLogger('eyed3.mp3.headers').setLevel(logging.CRITICAL)
+
+from .scraping import azlyrics, metrolyrics, lyricswikia, darklyrics
+from .scraping import metalarchives, genius, musixmatch, songlyrics
+from .scraping import vagalume, letras, lyricsmode, lyricscom
+from .scraping import id_source, get_lastfm
+
+sources = [
+    azlyrics,
+    metrolyrics,
+    lyricswikia,
+    darklyrics,
+    metalarchives,
+    genius,
+    musixmatch,
+    songlyrics,
+    vagalume,
+    letras,
+    lyricsmode,
+    lyricscom
+]
+
+from .lyrics import Song, Result
+from .lyrics import exclude_sources, get_lyrics
+from .stats import Stats

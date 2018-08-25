@@ -33,7 +33,7 @@ setup(
     },
     include_package_data=True,
     entry_points={
-        'console_scripts': ['lyricfetch=lyricfetch.lyrics:main']
+        'console_scripts': ['lyricfetch=lyricfetch.cli:main']
     },
     python_requires='>=3.6',
     install_requires=[
