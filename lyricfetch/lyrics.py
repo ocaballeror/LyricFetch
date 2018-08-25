@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Song representation and functions to actually get lyrics.
 """
