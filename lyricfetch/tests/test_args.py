@@ -129,16 +129,16 @@ def test_argv_by_name(monkeypatch):
     # Run it first with only one song
     artist, title = 'judas priest', 'no surrender'
     new_args = [__file__, '-n', f'{artist} - {title}']
-    param_song = Song.from_info(artist, title)
+    param_song = Song(artist, title)
     monkeypatch.setattr(sys, 'argv', new_args)
     songs = parse_argv()
     assert songs == set([param_song])
 
     # Then try with multiple songs
     param_songs = [
-        Song.from_info('kreator', 'mars mantra'),
-        Song.from_info('nervosa', 'morbid courage'),
-        Song.from_info('ac/dc', 'night prowler'),
+        Song('kreator', 'mars mantra'),
+        Song('nervosa', 'morbid courage'),
+        Song('ac/dc', 'night prowler'),
     ]
     new_args = [__file__, '-n']
     for p_song in param_songs:
@@ -168,7 +168,7 @@ def test_argv_from_file(monkeypatch, tmpdir, mp3file):
         artist, title = tag
         shutil.copyfile(mp3file, filename)
         tag_mp3(filename, artist=artist, title=title)
-        songs.append(Song.from_info(artist=artist, title=title))
+        songs.append(Song(artist=artist, title=title))
 
     with NamedTemporaryFile('w') as tmp:
         for filename in mp3_files:

@@ -208,7 +208,7 @@ def test_getlyrics_from_info():
     """
     Check that the main method can actually return a result with lyrics.
     """
-    song = Song.from_info(artist='Iron maiden', title='Hallowed be thy name')
+    song = Song(artist='Iron maiden', title='Hallowed be thy name')
     result = get_lyrics(song)
     assert 'hallowed be thy name' in result.song.lyrics.lower()
 
@@ -262,7 +262,7 @@ def test_lyrthread_run():
 
     # First a normal run where the function actually returns some lyrics
     queue = Queue()
-    song = Song.from_info(artist='Avenged sevenfold', title='Demons')
+    song = Song(artist='Avenged sevenfold', title='Demons')
     lyr_thread = LyrThread(lambda f: 'Lyrics', song, queue)
     lyr_thread.start()
     result = queue.get()
@@ -297,7 +297,7 @@ def test_getlyrics_threaded():
 
     # source_2 is faster than source_1, so we should expect it to return lyrics
     # first, and source_1 to not even be in the result that's returned
-    song = Song.from_info(artist='Slipknot', title='The virus of life')
+    song = Song(artist='Slipknot', title='The virus of life')
     result = get_lyrics_threaded(song, l_sources=[source_1, source_2])
     assert song.lyrics == 'Lyrics 2'
     assert result.song.lyrics == 'Lyrics 2'
@@ -308,7 +308,7 @@ def test_getlyrics_threaded():
     # Now we use source_3, which is faster than source_1, but doesn't return
     # any lyrics, so we expect the function to ignore that result and give us
     # the lyrics from source_1
-    song = Song.from_info(artist='Power trip', title='Ruination')
+    song = Song(artist='Power trip', title='Ruination')
     result = get_lyrics_threaded(song, l_sources=[source_1, source_3])
     assert song.lyrics == 'Lyrics 1'
     assert result.song.lyrics == 'Lyrics 1'
@@ -318,7 +318,7 @@ def test_getlyrics_threaded():
 
     # Lastly, we try only source_3, so we should expect the result to have no
     # lyrics, and its `source` attribute to be None.
-    song = Song.from_info('Amon amarth', 'Back on northern shores')
+    song = Song('Amon amarth', 'Back on northern shores')
     result = get_lyrics_threaded(song, l_sources=[source_3] * 4)
     assert song.lyrics == ''
     assert result.song.lyrics == ''
@@ -414,5 +414,5 @@ def fake_getlyrics_run_mp(source):
         return None
 
     runtimes = {azlyrics: 1}
-    song = Song.from_info(artist='breaking benjamin', title='i will not bow')
+    song = Song(artist='breaking benjamin', title='i will not bow')
     return Result(song, source, runtimes)

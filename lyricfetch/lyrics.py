@@ -755,11 +755,11 @@ class Song:
     to create a song object. Either from_filename, from_info or from_string
     depending on the use case.
     """
-    def __init__(self):
-        self.artist = ''
-        self.title = ''
-        self.album = ''
-        self.lyrics = ''
+    def __init__(self, artist='', title='', album='', lyrics=''):
+        self.artist = artist
+        self.title = title
+        self.album = album
+        self.lyrics = lyrics
 
     def __str__(self):
         return self.__repr__()
@@ -815,36 +815,16 @@ class Song:
             return None
 
         tags = audiofile.tag
-        song = cls.__new__(cls)
-        song.__init__()
+        album = tags.album
+        title = tags.title
+        lyrics = ''.join([l.text for l in tags.lyrics])
+        artist = tags.album_artist
+        if not artist:
+            artist = tags.artist
 
+        song = cls.__new__(cls)
+        song.__init__(artist, title, album, lyrics)
         song.filename = filename
-        song.title = tags.title
-        song.album = tags.album
-        song.lyrics = ''.join([l.text for l in tags.lyrics])
-        song.artist = tags.album_artist
-        if not song.artist:
-            song.artist = tags.artist
-
-        return song
-
-    @classmethod
-    def from_info(cls, artist, title, album=''):
-        """
-        Class constructor to create a Song object by directly specifying the
-        metadata.
-        """
-        song = cls.__new__(cls)
-        song.__init__()
-
-        if not artist or not title:
-            logger.error('Incomplete song info')
-            return None
-
-        song.artist = artist
-        song.title = title
-        song.album = album
-
         return song
 
     @classmethod
@@ -854,24 +834,24 @@ class Song:
         be used when parsing user input, since all the information must be
         specified in a single string formatted as: '{artist} - {title}'.
         """
-        song = cls.__new__(cls)
-        song.__init__()
-
         recv = [t.strip() for t in name.split(separator)]
         if len(recv) < 2:
             logger.error('Wrong format!')
             return None
 
         if reverse:
-            song.title = recv[0]
-            song.artist = ''.join(recv[1:])
+            title = recv[0]
+            artist = ''.join(recv[1:])
         else:
-            song.artist = recv[0]
-            song.title = ''.join(recv[1:])
+            artist = recv[0]
+            title = ''.join(recv[1:])
 
-        if not song.artist or not song.title:
+        if not artist or not title:
             logger.error('Wrong format!')
             return None
+
+        song = cls.__new__(cls)
+        song.__init__(artist, title)
 
         return song
 

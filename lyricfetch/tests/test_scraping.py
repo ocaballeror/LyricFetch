@@ -57,7 +57,7 @@ def test_scrape(site, artist, title):
     """
     if not check_site_available(site):
         pytest.skip('This site is not available')
-    song = Song.from_info(artist=artist, title=title)
+    song = Song(artist=artist, title=title)
     lyrics = site(song)
     assert lyrics != ''
 
@@ -74,6 +74,6 @@ def test_scrape_darklyrics(artist, title):
     extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
     if not check_site_available(extra_check):
         pytest.skip('Darklyrics blocked you again')
-    song = Song.from_info(artist=artist, title=title)
+    song = Song(artist=artist, title=title)
     lyrics = darklyrics(song)
     assert lyrics != ''
