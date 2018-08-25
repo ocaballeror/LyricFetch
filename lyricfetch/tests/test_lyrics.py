@@ -257,7 +257,6 @@ def test_lyrthread_run():
     for a song and put the result in a Queue.
     """
     def raise_error(arg):
-        print('thing')
         raise ConnectionError
 
     # First a normal run where the function actually returns some lyrics

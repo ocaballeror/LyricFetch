@@ -34,7 +34,6 @@ def test_argv_param(monkeypatch, arg, config, klass):
         param = random.randint(1, 10)
     new_argv.append(str(param))
 
-    print(new_argv)
     monkeypatch.setattr(sys, 'argv', new_argv)
     parse_argv()
     assert CONFIG[config] == param

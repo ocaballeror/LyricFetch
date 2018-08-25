@@ -144,8 +144,7 @@ class Song:
             try:
                 self.album = response['track']['album']['title']
                 logger.debug('Found album %s from lastfm', self.album)
-            except Exception as error:
-                print(error)
+            except Exception:
                 logger.warning('Could not fetch album name for %s', self)
         else:
             logger.warning('Could not fetch album name for %s', self)
