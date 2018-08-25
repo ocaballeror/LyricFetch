@@ -15,7 +15,7 @@ from conftest import tag_mp3
 
 import lyricfetch
 from lyricfetch import Song
-from lyricfetch.lyrics import CONFIG
+from lyricfetch import CONFIG
 from lyricfetch.cli import load_from_file
 from lyricfetch.cli import main
 from lyricfetch.cli import parse_argv
