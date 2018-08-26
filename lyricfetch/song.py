@@ -1,7 +1,14 @@
+"""
+Module containing the representation of a song object, and a few extra methods
+to get the current playing song.
+"""
 import os
+import subprocess
 from pathlib import Path
 
 import eyed3
+import dbus
+from dbus.exceptions import DBusException
 
 from . import logger
 from .scraping import get_lastfm
@@ -132,3 +139,124 @@ class Song:
                 logger.warning('Could not fetch album name for %s', self)
         else:
             logger.warning('Could not fetch album name for %s', self)
+
+
+def get_dbus_object(bus_name, path):
+    """
+    Return a dbus object from the specified path and bus name.
+    """
+    # List object paths with 'qdbus <bus_name>'
+    # List methods with 'qdbus <bus_name> <path>'
+    bus = dbus.SessionBus()
+    return bus.get_object(bus_name, path)
+
+
+def get_info_mpris2(name):
+    """
+    Get the current playing song from an mpris2 compliant player.
+    """
+    # qdbus org.mpris.MediaPlayer2.<name> /org/mpris/MediaPlayer2\
+    # org.freedesktop.DBus.Properties.Get org.mpris.MediaPlayer2.Player Metadat
+    bus_name = 'org.mpris.MediaPlayer2.' + name
+    path = '/org/mpris/MediaPlayer2'
+    player = get_dbus_object(bus_name, path)
+    iface = dbus.Interface(player, 'org.freedesktop.DBus.Properties')
+    metadata = iface.Get('org.mpris.MediaPlayer2.Player', 'Metadata')
+    keys = ['album', 'title', 'artist', 'albumartist']
+
+    info = {}
+    metadata = {k: v for k, v in metadata.items() if 'xesam:' in k}
+    for key, value in metadata.items():
+        name = key.split(':')[1].lower()
+        if name not in keys or name in info:
+            continue
+        if isinstance(value, dbus.Array):
+            value = value[0]
+        info[name] = value
+
+    if 'albumartist' in info:
+        info['artist'] = info['albumartist']
+        del info['albumartist']
+
+    return Song(**info)
+
+
+def get_current_amarok():
+    """
+    Get the current song from amarok.
+    """
+    player = get_dbus_object('org.kde.amarok', '/Player')
+    metadata = player.GetMetadata()
+    return Song(metadata['artist'], metadata['title'], metadata['album'])
+
+
+def get_current_clementine():
+    """
+    Get the current song from clementine.
+    """
+    # mpris_version 2
+    try:
+        return get_info_mpris2('clementine')
+    except DBusException:
+        bus_name = 'org.mpris.clementine'
+        path = '/Player'
+        player = get_dbus_object(bus_name, path)
+
+        iface_name = 'org.freedesktop.MediaPlayer'
+        iface = dbus.Interface(player, dbus_interface=iface_name)
+        metadata = iface.GetMetadata()
+        return Song(metadata['artist'], metadata['title'], metadata['album'])
+
+    else:
+        return get_info_mpris2('clementine')
+
+
+def get_current_cmus():
+    """
+    Get the current song from cmus.
+    """
+    result = subprocess.run('cmus-remote -Q'.split(' '), check=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    info = {}
+    for line in result.stdout.decode().split('\n'):
+        line = line.split(' ')
+        if line[0] != 'tag':
+            continue
+        key = line[1]
+        if key in ['album', 'title', 'artist', 'albumartist'] and\
+           key not in info:
+            info[key] = ' '.join(line[2:])
+
+    if 'albumartist' in info:
+        info['artist'] = info['albumartist']
+        del info['albumartist']
+
+    return Song(**info)
+
+
+def get_current_spotify():
+    """
+    Get the current song from spotify.
+    """
+    return get_info_mpris2('spotify')
+
+
+probers = {
+    'amarok': get_current_amarok,
+    'clementine': get_current_clementine,
+    'cmus': get_current_cmus,
+    'spotify': get_current_spotify
+}
+
+
+def get_current_song():
+    """
+    Try all the known players and return the "Now playing" information of
+    the first available one.
+    """
+    for name, func in probers.items():
+        try:
+            return name, func()
+        except Exception:
+            pass
+    return None
