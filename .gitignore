@@ -3,6 +3,8 @@ tags
 .tags
 *~
 *@neomake*
+.coverage
+.coverage\.*
 
 config.json
 build/

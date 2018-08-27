@@ -50,6 +50,7 @@ setup(
         'test': [
             'pytest',
             'pytest-xdist',
+            'pytest-cov',
         ],
     },
 )
