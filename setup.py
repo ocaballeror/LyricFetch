@@ -48,6 +48,7 @@ setup(
             'flake8-per-file-ignores',
         ],
         'test': [
+            'tox',
             'pytest',
             'pytest-xdist',
             'pytest-cov',
