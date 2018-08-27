@@ -1,6 +1,8 @@
 """
 Tests for the `Stats` and `Record` classes.
 """
+import re
+
 from lyricfetch import Stats
 from lyricfetch.scraping import azlyrics
 from lyricfetch.scraping import metrolyrics
@@ -117,3 +119,19 @@ def test_stats_calculate():
         'notfound': 4,
         'total_time': 10
     }
+
+
+def test_print_stats(capsys):
+    """
+    Test the print_stats method, verifying that there are no placeholders in
+    the generated output.
+    """
+    stats = Stats()
+    stats.add_result(azlyrics, True, 1)
+    stats.add_result(metrolyrics, False, 2)
+    stats.print_stats()
+
+    output, _ = capsys.readouterr()
+    assert not re.match(r'\{.*\}', output)
+    assert azlyrics.__name__ in output.lower()
+    assert metrolyrics.__name__ in output.lower()
