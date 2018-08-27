@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/ocaballeror/LyricFetch.svg?branch=master)](https://travis-ci.org/ocaballeror/LyricFetch)
 [![Version](https://img.shields.io/pypi/v/lyricfetch.svg)](https://img.shields.io/pypi/v/lyricfetch.svg)
+[![Maintainability](https://api.codeclimate.com/v1/badges/2c3527b58c4897adf2a9/maintainability)](https://codeclimate.com/github/ocaballeror/LyricFetch/maintainability)
 [![Requirements Status](https://requires.io/github/ocaballeror/LyricFetch/requirements.svg?branch=master)](https://requires.io/github/ocaballeror/LyricFetch/requirements/?branch=master)
 # LyricFetch
 LyricFetch is a program written in python to scrape lyrics from the internet.
