@@ -101,8 +101,7 @@ class Song:
         if not artist:
             artist = tags.artist
 
-        song = cls.__new__(cls)
-        song.__init__(artist, title, album, lyrics)
+        song = cls(artist, title, album, lyrics)
         song.filename = filename
         return song
 
@@ -129,9 +128,7 @@ class Song:
             logger.error('Wrong format!')
             return None
 
-        song = cls.__new__(cls)
-        song.__init__(artist, title)
-
+        song = cls(artist, title)
         return song
 
     def fetch_album_name(self):
