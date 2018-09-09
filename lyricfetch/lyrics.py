@@ -41,8 +41,10 @@ class Song:
         self.lyrics = lyrics
 
     def __repr__(self):
-        rep = self.__str__()
-        return f'Song({rep})'
+        items = self.__dict__.copy()
+        del items['lyrics']
+        values = ('='.join((k, v)) for k, v in items.items() if v)
+        return 'Song({})'.format(', '.join(values))
 
     def __str__(self):
         if hasattr(self, 'filename'):
