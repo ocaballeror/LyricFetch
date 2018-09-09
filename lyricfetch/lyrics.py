@@ -40,14 +40,15 @@ class Song:
         self.album = album
         self.lyrics = lyrics
 
-    def __str__(self):
-        return self.__repr__()
-
     def __repr__(self):
-        if self.artist and self.title and not hasattr(self, 'filename'):
-            return f'{self.artist.title()} - {self.title.title()}'
-        elif self.filename:
+        rep = self.__str__()
+        return f'Song({rep})'
+
+    def __str__(self):
+        if hasattr(self, 'filename'):
             return self.filename
+        elif self.artist and self.title:
+            return f'{self.artist.title()} - {self.title.title()}'
         else:
             return ''
 
