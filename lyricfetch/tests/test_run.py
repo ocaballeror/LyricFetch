@@ -10,8 +10,10 @@ from queue import Queue
 import pytest
 
 from conftest import tag_mp3
+import lyricfetch.run
 from lyricfetch import CONFIG
 from lyricfetch import Result
+from lyricfetch import Stats
 from lyricfetch import Song
 from lyricfetch import azlyrics
 from lyricfetch import exclude_sources
@@ -19,11 +21,10 @@ from lyricfetch import get_lastfm
 from lyricfetch import get_lyrics
 from lyricfetch import id_source
 from lyricfetch import sources
-from lyricfetch import lyrics
-from lyricfetch.lyrics import LyrThread
-from lyricfetch.lyrics import get_lyrics_threaded
-from lyricfetch.lyrics import process_result
-from lyricfetch.lyrics import run_mp
+from lyricfetch.run import LyrThread
+from lyricfetch.run import get_lyrics_threaded
+from lyricfetch.run import process_result
+from lyricfetch.run import run_mp
 from lyricfetch.scraping import get_url
 from lyricfetch.scraping import normalize
 
@@ -330,7 +331,7 @@ def test_run_mp(monkeypatch):
     Test `run_mp()`, which should concurrently search for the lyrics of a list
     of songs, source by source.
     """
-    monkeypatch.setattr(lyrics, 'get_lyrics', fake_getlyrics_run_mp)
+    monkeypatch.setattr(lyricfetch.run, 'get_lyrics', fake_getlyrics_run_mp)
 
     # fake_getlyrics will return: None, a Result with 'random_source' and a
     # Result with `None` as source (i.e. the lyrics were not found).
@@ -379,8 +380,9 @@ def test_run_one_song(mp3file, monkeypatch):
         return Result(song=song, source='whatever', runtimes={})
 
     song = Song.from_filename(mp3file)
-    monkeypatch.setattr(lyrics, 'get_lyrics_threaded', fake_getlyricsthreaded)
-    lyrics.run(song)
+    monkeypatch.setattr(lyricfetch.run, 'get_lyrics_threaded',
+                        fake_getlyricsthreaded)
+    lyricfetch.run.run(song)
     assert Song.from_filename(mp3file).lyrics == song_lyrics
 
 
@@ -392,13 +394,15 @@ def test_run_multiple_songs(mp3file, monkeypatch):
     def fake_runmp(songs):
         for i, song in enumerate(songs):
             tag_mp3(song.filename, lyrics=f'lyrics{i}')
+        return Stats()
 
     other_mp3 = tempfile.mktemp()
     shutil.copy(mp3file, other_mp3)
     mp3files = [mp3file, other_mp3]
     songs = [Song.from_filename(f) for f in mp3files]
-    monkeypatch.setattr(lyrics, 'run_mp', fake_runmp)
-    lyrics.run(songs)
+    CONFIG['print_stats'] = False
+    monkeypatch.setattr(lyricfetch.run, 'run_mp', fake_runmp)
+    lyricfetch.run.run(songs)
     for i, filename in enumerate(mp3files):
         assert Song.from_filename(filename).lyrics == f'lyrics{i}'
 

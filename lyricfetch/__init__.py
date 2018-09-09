@@ -61,6 +61,7 @@ sources = [
     lyricscom
 ]
 
-from .lyrics import Song, Result
-from .lyrics import exclude_sources, get_lyrics
+from .run import Result
+from .song import Song
+from .run import exclude_sources, get_lyrics
 from .stats import Stats

@@ -9,8 +9,8 @@ import glob
 
 from . import logger
 from . import CONFIG
-from .lyrics import Song
-from .lyrics import run
+from .song import Song
+from .run import run
 
 
 def load_from_file(filename):
