@@ -14,6 +14,7 @@ from conftest import chdir
 from conftest import tag_mp3
 
 import lyricfetch
+import lyricfetch.song
 from lyricfetch import Song
 from lyricfetch import CONFIG
 from lyricfetch.cli import load_from_file
@@ -66,7 +67,7 @@ def test_argv_invalid_jobs(monkeypatch, num):
 
     current_value = CONFIG['jobcount']
     monkeypatch.setattr(sys, 'argv', new_argv)
-    with pytest.raises(ValueError):
+    with pytest.raises(SystemExit):
         parse_argv()
     assert CONFIG['jobcount'] == current_value
 
@@ -120,14 +121,32 @@ def test_argv_recursive_path(monkeypatch, mp3file, tmpdir):
     assert set(mp3s) == songs
 
 
+def test_argv_empty(monkeypatch):
+    """
+    Check that, with no arguments, the program searches for the currently
+    playing song.
+    """
+    current_song = Song('Fallujah', 'Assemblage of wolves')
+
+    def fake_get_current_song():
+        return current_song
+
+    new_args = [__file__]
+    monkeypatch.setattr(sys, 'argv', new_args)
+    monkeypatch.setattr(lyricfetch.cli, 'get_current_song',
+                        fake_get_current_song)
+    songs = parse_argv()
+    assert songs == set([current_song])
+
+
 def test_argv_by_name(monkeypatch):
     """
-    Check that the `-n` flag accepts a song or list of songs by name, and
+    Check that the program accepts a song or list of songs by name, and
     returns a list of song objects with the information it parsed.
     """
     # Run it first with only one song
     artist, title = 'judas priest', 'no surrender'
-    new_args = [__file__, '-n', f'{artist} - {title}']
+    new_args = [__file__, f'{artist} - {title}']
     param_song = Song(artist, title)
     monkeypatch.setattr(sys, 'argv', new_args)
     songs = parse_argv()
@@ -139,7 +158,7 @@ def test_argv_by_name(monkeypatch):
         Song('nervosa', 'morbid courage'),
         Song('ac/dc', 'night prowler'),
     ]
-    new_args = [__file__, '-n']
+    new_args = [__file__]
     for p_song in param_songs:
         new_args.append(f'{p_song.artist} - {p_song.title}')
     monkeypatch.setattr(sys, 'argv', new_args)
@@ -202,10 +221,8 @@ def test_argv_filename(monkeypatch, mp3file, tmpdir):
 
 
 @pytest.mark.parametrize('args', [
-    ['-r', '-n'],
     ['-r', '--from-file'],
     ['-n', '--from-file'],
-    ['-r', '-n', '--from-file'],
 ])
 def test_argv_incompatible(monkeypatch, args):
     """

@@ -254,9 +254,9 @@ def get_current_song():
     Try all the known players and return the "Now playing" information of
     the first available one.
     """
-    for name, func in probers.items():
+    for func in probers.values():
         try:
-            return name, func()
+            return func()
         except Exception:
             pass
     return None

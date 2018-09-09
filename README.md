@@ -18,12 +18,20 @@ pip install lyricfetch
 
 ## Usage
 ### Lyrics on demand
-To get LyricFetch to find the lyrics of a song by title, use the `-n` flag, and
-then pass the title and artist of the song as a single argument. Make sure to
-add quotes around this parameter to avoid it being split into multiple ones.
+When you call Lyricfetch with no arguments, it will try to find out which song
+is playing on you computer and find lyrics for it.
+
 
 ```
-lyricfetch -n 'Metallica - Master of puppets'
+lyricfetch
+```
+
+To get LyricFetch to find the lyrics of a song by title, pass the title and
+artist of the song as a single argument. Make sure to add quotes around this
+parameter to avoid it being split into multiple ones.
+
+```
+lyricfetch 'Metallica - Master of puppets'
 ```
 
 Be sure to use this specific format or the program won't be able to parse the
@@ -38,7 +46,7 @@ When found, the program will automatically store the lyrics as additional (ID3
 v2.3 'lyrics' tag) metadata for those files.
 
 ```
-lyricfetch a_very_cool_song.mp3 a_sad_song.mp3 that_other_song_i_dont_know.mp3
+lyricfetch a_very_cool_song.mp3 a_sad_song.mp3 that_other_song.mp3
 ```
 
 If you prefer, you can use the `-r` flag, and LyricFetch will scan the specified
