@@ -53,7 +53,7 @@ def parse_argv():
                         action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-r', '--recursive', help='Recursively search for'
-                       ' mp3 files', nargs='?', const='.')
+                       ' mp3 files', metavar='path', nargs='?', const='.')
     group.add_argument('-n', '--by-name', help='A list of song names in'
                        " 'artist - title' format", nargs='*')
     group.add_argument('--from-file', help='Read a list of files from a text'
