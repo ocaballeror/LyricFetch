@@ -10,14 +10,21 @@ matrix:
         - python: 3.6
           env: TOXENV=lint
 
+before_install:
+    - sudo apt-get update -y
+    - sudo apt-get install -y libdbus-1-dev libdbus-glib-1-dev
+
 install:
     - pip install tox tox-travis
 
 script:
     - tox
+
 notifications:
     email: false
 
 env:
     global:
-        secure: ta+HKB6Xp7418nm8Q8yGIlqgLhva8xhYuCHluBRoed4e11z5ZRaqN7MqKvmK/OFGDEZob8ShBK19sc6RycyEZb8nj4so05dbXGBZ/xKNqVvgO1+j7VGRLmLjbdes5CxoFOxWouYkrxe3z545nMplpWFxYdUm+M6QE5MgPe82TIPTaJXJXA7wkZoxCCsQmhJUsXm6te4G/RT6rF0thbAbvS+TrcdQVammt12RjMijVWkF3YCrDlN1CksrXGKdsvtQizO0eb5LNyWXNUFyE79P/JD6rWdG4iNhUGSQrxz/Uaof+9LwxAZfrdMB00d8bjLyrvzAiMxXnbrKdCoFzS1XZePw7gJcJ0mA9QoSjghXv73DYDIjqzJR8offppN/QdfPm3x19eQ4EYQsmRjuxl9vzdad22eZKLXDDhTcvaQBSBCVppcAyKysje2B+BQbNHQvzXPEPELpLMHrY9BBbGpD9fmR1WZp22jQBAp7lIAzfqIBJTjUrOaEniH41of6CIGx2iasTFIkZfGuqcrd44G7PB1+yY7Y6OrYzyvMHGbw/Ob8OpW6zT63FotBekRDRIYc5KPE2SecgJl3OAjLthJpgvTJtCpw8vBhVpx7HkfAvV/0scarjJVXnJL5BZWl4wOl1HSof62LZgJL53JxSZNtePvmO7nO9I2dYnnX985Jn58=
+        - 'PYTHON_LIBS="-L$(python-config --prefix)/lib $(python-config --libs)"'
+        - PY_ENABLE_SHARD=0
+        - secure: ta+HKB6Xp7418nm8Q8yGIlqgLhva8xhYuCHluBRoed4e11z5ZRaqN7MqKvmK/OFGDEZob8ShBK19sc6RycyEZb8nj4so05dbXGBZ/xKNqVvgO1+j7VGRLmLjbdes5CxoFOxWouYkrxe3z545nMplpWFxYdUm+M6QE5MgPe82TIPTaJXJXA7wkZoxCCsQmhJUsXm6te4G/RT6rF0thbAbvS+TrcdQVammt12RjMijVWkF3YCrDlN1CksrXGKdsvtQizO0eb5LNyWXNUFyE79P/JD6rWdG4iNhUGSQrxz/Uaof+9LwxAZfrdMB00d8bjLyrvzAiMxXnbrKdCoFzS1XZePw7gJcJ0mA9QoSjghXv73DYDIjqzJR8offppN/QdfPm3x19eQ4EYQsmRjuxl9vzdad22eZKLXDDhTcvaQBSBCVppcAyKysje2B+BQbNHQvzXPEPELpLMHrY9BBbGpD9fmR1WZp22jQBAp7lIAzfqIBJTjUrOaEniH41of6CIGx2iasTFIkZfGuqcrd44G7PB1+yY7Y6OrYzyvMHGbw/Ob8OpW6zT63FotBekRDRIYc5KPE2SecgJl3OAjLthJpgvTJtCpw8vBhVpx7HkfAvV/0scarjJVXnJL5BZWl4wOl1HSof62LZgJL53JxSZNtePvmO7nO9I2dYnnX985Jn58=
