@@ -41,24 +41,20 @@ logger.setLevel(logging.INFO)
 # Discard eyed3 messages unless they're important
 logging.getLogger('eyed3.mp3.headers').setLevel(logging.CRITICAL)
 
-from .scraping import azlyrics, metrolyrics, lyricswikia, darklyrics
-from .scraping import metalarchives, genius, musixmatch, songlyrics
-from .scraping import vagalume, letras, lyricsmode, lyricscom
-from .scraping import id_source, get_lastfm
-
+from . import scraping
 sources = [
-    azlyrics,
-    metrolyrics,
-    lyricswikia,
-    darklyrics,
-    metalarchives,
-    genius,
-    musixmatch,
-    songlyrics,
-    vagalume,
-    letras,
-    lyricsmode,
-    lyricscom
+    scraping.azlyrics,
+    scraping.metrolyrics,
+    scraping.lyricswikia,
+    scraping.darklyrics,
+    scraping.metalarchives,
+    scraping.genius,
+    scraping.musixmatch,
+    scraping.songlyrics,
+    scraping.vagalume,
+    scraping.letras,
+    scraping.lyricsmode,
+    scraping.lyricscom
 ]
 
 from .run import Result
