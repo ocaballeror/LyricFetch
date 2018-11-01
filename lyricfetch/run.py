@@ -4,7 +4,6 @@ All the functions and classes needed to actually perform the lyrics search.
 import os
 import time
 import math
-import importlib
 import threading
 from queue import Queue
 
