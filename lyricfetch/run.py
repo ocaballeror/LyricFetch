@@ -83,7 +83,9 @@ def exclude_sources(exclude, section=False):
         if not section:
             newlist.remove(source)
         else:
-            pos = newlist.index(source)
+            pos = newlist.index(source) + 1
+            if pos == len(sources):
+                return []
             newlist = sources[pos:]
     return newlist
 
