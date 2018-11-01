@@ -25,20 +25,23 @@ def check_site_available(site, secure=False):
     """
     Helper function to check if a specific website is available.
     """
-    try:
-        if not isinstance(site, str):
-            url = id_source(site, full=True).lower()
-        else:
-            url = site
+    if not isinstance(site, str):
+        url = id_source(site, full=True).lower()
+    else:
+        url = site
+    if not url.startswith('http'):
         prefix = 'https' if secure else 'http'
-        get_url(f'{prefix}://{url}', parser='raw')
+        url = f'{prefix}://{url}'
+
+    try:
+        get_url(url, parser='raw')
+    except (HTTPError, RemoteDisconnected) as error:
+        return False
     except URLError as error:
         if secure:
             print(type(error), error)
             return False
         return check_site_available(site, secure=True)
-    except RemoteDisconnected:
-        return False
     return True
 
 
@@ -46,7 +49,11 @@ def test_get_url():
     """
     Check that `get_url` returns the contents of a url using different parsers.
     """
-    soup = get_url('http://example.com', parser='html')
+    test_site = 'http://example.com'
+    if not check_site_available(test_site):
+        pytest.skip('Test site not available')
+
+    soup = get_url(test_site, parser='html')
     assert soup
     assert hasattr(soup, 'html')
     assert hasattr(soup, 'head')
@@ -73,7 +80,11 @@ def test_get_url_tlsv1():
     Check that `get_url` can get data from a website using an older encryption
     protocol (TLSv1).
     """
-    soup = get_url('http://www.metal-archives.com')
+    test_site = 'http://www.metal-archives.com'
+    if not check_site_available(test_site):
+        pytest.skip('Test site not available')
+
+    soup = get_url(test_site, parser='html')
     assert soup
     assert hasattr(soup, 'html')
     assert hasattr(soup, 'head')
