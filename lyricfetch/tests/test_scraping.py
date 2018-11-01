@@ -201,7 +201,7 @@ def test_exclude_sources_section_callable():
     Check that sources are correctly excluded from the main list .
     """
     newlist = exclude_sources(sources[-2], section=True)
-    assert newlist == sources[-2:]
+    assert newlist == sources[-1:]
 
 
 @pytest.mark.parametrize('site,artist,title', [
