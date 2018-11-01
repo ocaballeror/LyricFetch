@@ -172,16 +172,6 @@ def test_exclude_sources_callable():
     assert newlist == sources[:-1]
 
 
-def test_exclude_sources_str():
-    """
-    Check that a source is correctly excluded from the main list when passing
-    the name of a function as a string.
-    """
-    last_source = sources[-1]
-    newlist = exclude_sources(last_source.__name__)
-    assert newlist == sources[:-1]
-
-
 def test_exclude_sources_list_callable():
     """
     Check that sources are correctly excluded from the main list when passing a
@@ -192,29 +182,11 @@ def test_exclude_sources_list_callable():
     assert newlist == sources[:-2]
 
 
-def test_exclude_sources_list_str():
-    """
-    Check that sources are correctly excluded from the main list when passing a
-    list of strings.
-    """
-    last_sources = list(map(lambda f: f.__name__, sources[-2:]))
-    newlist = exclude_sources(last_sources)
-    assert newlist == sources[:-2]
-
-
 def test_exclude_sources_section_callable():
     """
     Check that sources are correctly excluded from the main list .
     """
     newlist = exclude_sources(sources[-2], section=True)
-    assert newlist == sources[-2:]
-
-
-def test_exclude_sources_section_str():
-    """
-    Check that sources are correctly excluded from the main list .
-    """
-    newlist = exclude_sources(sources[-2].__name__, section=True)
     assert newlist == sources[-2:]
 
 

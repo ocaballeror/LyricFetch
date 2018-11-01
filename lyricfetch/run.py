@@ -81,36 +81,12 @@ def exclude_sources(exclude, section=False):
         exclude = [exclude]
 
     for source in exclude:
-        if callable(source):
-            newlist = _exclude_callable(source, newlist, section)
-        if isinstance(source, str):
-            newlist = _exclude_string(source, newlist, section)
+        if not section:
+            newlist.remove(source)
+        else:
+            pos = newlist.index(source)
+            newlist = sources[pos:]
     return newlist
-
-
-def _exclude_callable(func, s_list, section):
-    """
-    Exclude a function from a list of sources.
-    """
-    if not section:
-        s_list.remove(func)
-    else:
-        pos = s_list.index(func)
-        s_list = sources[pos:]
-    return s_list
-
-
-def _exclude_string(name, s_list, section):
-    """
-    Exclude a function (specified by name) from a list of sources.
-    """
-    this_module = importlib.import_module(__name__.split('.')[0])
-    if hasattr(this_module, name):
-        func = getattr(this_module, name)
-        logger.debug('Using new source %s', func.__name__)
-        s_list = _exclude_callable(func, s_list, section)
-
-    return s_list
 
 
 def get_lyrics(song, l_sources=None):
