@@ -2,9 +2,8 @@
 Tests for the `Stats` and `Record` classes.
 """
 from lyricfetch import Stats
-from lyricfetch import azlyrics
-from lyricfetch import metrolyrics
-
+from lyricfetch.scraping import azlyrics
+from lyricfetch.scraping import metrolyrics
 from lyricfetch.stats import Record
 from lyricfetch.stats import avg
 

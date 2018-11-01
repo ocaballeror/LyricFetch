@@ -12,12 +12,12 @@ from lyricfetch import CONFIG
 from lyricfetch import Result
 from lyricfetch import Stats
 from lyricfetch import Song
-from lyricfetch import azlyrics
 from lyricfetch import get_lyrics
 from lyricfetch.run import LyrThread
 from lyricfetch.run import get_lyrics_threaded
 from lyricfetch.run import process_result
 from lyricfetch.run import run_mp
+from lyricfetch.scraping import azlyrics
 from conftest import tag_mp3
 
 

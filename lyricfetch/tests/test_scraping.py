@@ -9,15 +9,15 @@ import pytest
 
 from conftest import lastfm_key
 from lyricfetch import Song
-from lyricfetch import id_source
-from lyricfetch import azlyrics, metrolyrics, lyricswikia
-from lyricfetch import darklyrics, metalarchives, genius
-from lyricfetch import musixmatch, songlyrics, vagalume
-from lyricfetch import letras, lyricsmode, lyricscom
 from lyricfetch import exclude_sources
-from lyricfetch import get_lastfm
 from lyricfetch import sources
+from lyricfetch.scraping import azlyrics, metrolyrics, lyricswikia
+from lyricfetch.scraping import darklyrics, metalarchives, genius
+from lyricfetch.scraping import musixmatch, songlyrics, vagalume
+from lyricfetch.scraping import letras, lyricsmode, lyricscom
 from lyricfetch.scraping import get_url
+from lyricfetch.scraping import get_lastfm
+from lyricfetch.scraping import id_source
 from lyricfetch.scraping import normalize
 
 
