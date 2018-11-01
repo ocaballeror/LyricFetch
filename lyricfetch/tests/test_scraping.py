@@ -35,9 +35,9 @@ def check_site_available(site, secure=False):
 
     try:
         get_url(url, parser='raw')
-    except (HTTPError, RemoteDisconnected) as error:
+    except HTTPError as error:
         return False
-    except URLError as error:
+    except (URLError, RemoteDisconnected) as error:
         if secure:
             print(type(error), error)
             return False
