@@ -34,7 +34,7 @@ CONFIG = {
 
 _load_config()
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
