@@ -169,8 +169,12 @@ def test_id_source_mappings():
     them return an empty string.
     """
     for source in sources:
-        assert id_source(source) != ''
-        assert id_source(source, full=True) != ''
+        name = id_source(source)
+        assert isinstance(name, str)
+        assert name != ''
+        name = id_source(source, full=True)
+        assert isinstance(name, str)
+        assert name != ''
 
 
 def test_exclude_sources_callable():
