@@ -55,10 +55,10 @@ def test_get_url():
 
     soup = get_url(test_site, parser='html')
     assert soup
+    assert soup.get_text().strip() != ''
     assert hasattr(soup, 'html')
     assert hasattr(soup, 'head')
     assert hasattr(soup, 'body')
-    assert soup.get_text != ''
 
     raw = get_url('http://example.com', parser='raw')
     assert '<html>' in raw
