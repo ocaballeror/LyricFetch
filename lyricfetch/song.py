@@ -7,8 +7,10 @@ import subprocess
 from pathlib import Path
 
 import eyed3
-import dbus
-from dbus.exceptions import DBusException
+from jeepney import DBusAddress, Properties
+from jeepney import DBusErrorResponse
+from jeepney import new_method_call
+from jeepney.integrate.blocking import connect_and_authenticate
 
 from . import logger
 from .scraping import get_lastfm
@@ -141,16 +143,6 @@ class Song:
             logger.warning('Could not fetch album name for %s', self)
 
 
-def get_dbus_object(bus_name, path):
-    """
-    Return a dbus object from the specified path and bus name.
-    """
-    # List object paths with 'qdbus <bus_name>'
-    # List methods with 'qdbus <bus_name> <path>'
-    bus = dbus.SessionBus()
-    return bus.get_object(bus_name, path)
-
-
 def get_info_mpris2(name):
     """
     Get the current playing song from an mpris2 compliant player.
@@ -159,18 +151,22 @@ def get_info_mpris2(name):
     # org.freedesktop.DBus.Properties.Get org.mpris.MediaPlayer2.Player Metadat
     bus_name = 'org.mpris.MediaPlayer2.' + name
     path = '/org/mpris/MediaPlayer2'
-    player = get_dbus_object(bus_name, path)
-    iface = dbus.Interface(player, 'org.freedesktop.DBus.Properties')
-    metadata = iface.Get('org.mpris.MediaPlayer2.Player', 'Metadata')
+    interface = 'org.mpris.MediaPlayer2.Player'
+    address = DBusAddress(path, bus_name=bus_name, interface=interface)
+    msg = Properties(address).get('Metadata')
+    connection = connect_and_authenticate()
+    response = connection.send_and_get_reply(msg)
+    metadata = dict(response[0][1])
     keys = ['album', 'title', 'artist', 'albumartist']
 
     info = {}
     metadata = {k: v for k, v in metadata.items() if 'xesam:' in k}
     for key, value in metadata.items():
         name = key.split(':')[1].lower()
+        value = value[1]
         if name not in keys or name in info:
             continue
-        if isinstance(value, dbus.Array):
+        if isinstance(value, list):
             value = value[0]
         info[name] = value
 
@@ -181,13 +177,21 @@ def get_info_mpris2(name):
     return Song(**info)
 
 
+def dbus_get_metadata(path, bus_name, interface=None):
+    address = DBusAddress(path, bus_name, interface)
+    conn = connect_and_authenticate()
+    metadata = conn.send_and_get_reply(new_method_call(address, 'GetMetadata'))
+    metadata = dict(metadata[0])
+    keys = ['artist', 'title', 'album']
+    metadata = {k: v[1] for k, v in metadata.items() if k in keys}
+    return Song(**metadata)
+
+
 def get_current_amarok():
     """
     Get the current song from amarok.
     """
-    player = get_dbus_object('org.kde.amarok', '/Player')
-    metadata = player.GetMetadata()
-    return Song(metadata['artist'], metadata['title'], metadata['album'])
+    return dbus_get_metadata('/Player', 'org.kde.amarok')
 
 
 def get_current_clementine():
@@ -197,18 +201,11 @@ def get_current_clementine():
     # mpris_version 2
     try:
         return get_info_mpris2('clementine')
-    except DBusException:
+    except DBusErrorResponse:
         bus_name = 'org.mpris.clementine'
         path = '/Player'
-        player = get_dbus_object(bus_name, path)
-
-        iface_name = 'org.freedesktop.MediaPlayer'
-        iface = dbus.Interface(player, dbus_interface=iface_name)
-        metadata = iface.GetMetadata()
-        return Song(metadata['artist'], metadata['title'], metadata['album'])
-
-    else:
-        return get_info_mpris2('clementine')
+        interface = 'org.freedesktop.MediaPlayer'
+        return dbus_get_metadata(path, bus_name, interface)
 
 
 def get_current_cmus():

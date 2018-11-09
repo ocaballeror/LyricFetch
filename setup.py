@@ -40,7 +40,7 @@ setup(
         'urllib3>=1.22',
         'beautifulsoup4>=4.5.3',
         'eyeD3>=0.8.2',
-        'dbus-python==1.2.4'
+        'jeepney>=0.4',
     ],
     extras_require={
         'lint': [
