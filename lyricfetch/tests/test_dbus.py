@@ -6,10 +6,16 @@ import warnings
 from collections import defaultdict
 from multiprocessing import Process
 
+import pytest
 from jeepney.low_level import HeaderFields
 from jeepney.low_level import Message, MessageType
 from jeepney.integrate.blocking import connect_and_authenticate
 from jeepney.bus_messages import DBus
+from jeepney.wrappers import new_method_return
+from jeepney.wrappers import DBusErrorResponse
+
+from lyricfetch.song import Song
+from lyricfetch.song import get_current_amarok
 
 
 class DBusService:
@@ -71,3 +77,34 @@ class DBusService:
                 response.header.fields[HeaderFields.destination] = sender
                 return self.conn.send_message(response)
         return msg
+
+
+def test_get_current_amarok():
+    """
+    Check that we can get the current song playing in amarok.
+    """
+    now_playing = Song(artist='Nightwish', title='Alpenglow',
+                       album='Endless Forms Most Beautiful')
+
+    def reply_msg(msg):
+        sample_body = ([('album', ('s', now_playing.album)),
+                        ('albumartist', ('s', now_playing.artist)),
+                        ('artist', ('s', now_playing.artist)),
+                        ('title', ('s', now_playing.title))],)
+        return new_method_return(msg, signature='a{sv}', body=sample_body)
+
+    service = DBusService()
+    try:
+        service.request_name('org.kde.amarok')
+    except DBusErrorResponse:
+        pytest.skip("Can't get the requested name")
+
+    service.install_handler('/Player', 'GetMetadata', reply_msg)
+    try:
+        service.listen()
+
+        song = get_current_amarok()
+        assert song == now_playing
+    finally:
+        if service.name:
+            service.release_name()
