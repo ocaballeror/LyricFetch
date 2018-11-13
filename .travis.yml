@@ -12,10 +12,11 @@ matrix:
 
 before_install:
     - sudo apt-get update -y
-    - sudo apt-get install -y libdbus-1-dev libdbus-glib-1-dev
+    - sudo apt-get install -y dbus dbus-x11
 
 install:
     - pip install tox tox-travis
+    - eval $(dbus-launch --sh-syntax)
 
 script:
     - tox
