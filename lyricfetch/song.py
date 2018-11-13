@@ -51,8 +51,9 @@ class Song:
         if hasattr(self, 'filename') and hasattr(other, 'filename'):
             return Path(self.filename) == Path(other.filename)
         else:
-            equal = self.artist.lower() == other.artist.lower()
-            equal = equal and self.title.lower() == other.title.lower()
+            equal = (self.artist.lower() == other.artist.lower()
+                     and self.title.lower() == other.title.lower()
+                     and self.album.lower() == other.album.lower())
             return equal
 
     def __hash__(self):
