@@ -17,6 +17,8 @@ from jeepney.wrappers import DBusErrorResponse
 from lyricfetch.song import Song
 from lyricfetch.song import get_current_amarok
 
+from sample_responses import sample_response_amarok
+
 
 class DBusService:
     def __init__(self):
@@ -87,11 +89,8 @@ def test_get_current_amarok():
                        album='Endless Forms Most Beautiful')
 
     def reply_msg(msg):
-        sample_body = ([('album', ('s', now_playing.album)),
-                        ('albumartist', ('s', now_playing.artist)),
-                        ('artist', ('s', now_playing.artist)),
-                        ('title', ('s', now_playing.title))],)
-        return new_method_return(msg, signature='a{sv}', body=sample_body)
+        body = sample_response_amarok
+        return new_method_return(msg, signature='a{sv}', body=body)
 
     service = DBusService()
     try:
