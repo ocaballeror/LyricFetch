@@ -1,3 +1,7 @@
+"""
+Functions to test dbus-related functionality.
+"""
+import asyncio
 import warnings
 from collections import defaultdict
 from multiprocessing import Process
@@ -15,6 +19,7 @@ class DBusService:
         self.conn = connect_and_authenticate(bus='SESSION')
         self.handlers = defaultdict(dict)
         self.conn.router.on_unhandled = self.handle_msg
+        self.listen_process = Process(target=self._listen)
 
     def request_name(self, name):
         dbus = DBus()
@@ -24,8 +29,10 @@ class DBusService:
         self.name = name
 
     def release_name(self):
-        dbus = DBus()
-        reply = self.conn.send_and_get_reply(dbus.ReleaseName(self.name))
+        if self.listen_process.is_alive():
+            self.listen_process.terminate()
+
+        reply = self.conn.send_and_get_reply(DBus().ReleaseName(self.name))
         if reply != (1,):
             warnings.warn('Error releasing name')
         else:
@@ -34,8 +41,16 @@ class DBusService:
     def install_handler(self, path, method_name, handler):
         self.handlers[path][method_name] = handler
 
+    def _listen(self):
+        asyncio.set_event_loop(asyncio.new_event_loop())
+        while True:
+            self.conn.recv_messages()
+
     def listen(self):
-        Process(target=self.conn.recv_messages).start()
+        self.listen_process.start()
+
+    def stop(self):
+        self.listen_process.terminate()
 
     def handle_msg(self, msg):
         hdr = msg.header
