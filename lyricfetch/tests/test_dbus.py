@@ -2,6 +2,7 @@
 Functions to test dbus-related functionality.
 """
 import asyncio
+import os
 import warnings
 from collections import defaultdict
 from multiprocessing import Process
@@ -16,8 +17,10 @@ from jeepney.wrappers import DBusErrorResponse
 
 from lyricfetch.song import Song
 from lyricfetch.song import get_current_amarok
+from lyricfetch.song import get_current_cmus
 
 from sample_responses import sample_response_amarok
+from sample_responses import sample_response_cmus
 
 
 class DBusService:
@@ -107,3 +110,30 @@ def test_get_current_amarok():
     finally:
         if service.name:
             service.release_name()
+
+
+def test_get_current_cmus(monkeypatch, tmp_path):
+    """
+    Test that we can get the current song playing in cmus.
+    """
+    now_playing = Song(artist='Death', title='Baptized In Blood',
+                       album='Scream Bloody Gore')
+    # Create a fake cmus-remote script that will echo our response
+    cmus = tmp_path / 'cmus-remote'
+    contents = """\
+#!/bin/sh
+[ "$1" = "-Q" ] || exit 1
+echo "{}"
+    """
+    contents = contents.format(sample_response_cmus)
+    cmus.write_text(contents)
+
+    # Make the script executable
+    environ = os.environ.copy()
+    environ['PATH'] = str(tmp_path) + ':' + environ['PATH']
+    monkeypatch.setattr(os, 'environ', environ)
+    os.chmod(cmus, 0o755)
+
+    current = get_current_cmus()
+    assert current
+    assert current == now_playing
