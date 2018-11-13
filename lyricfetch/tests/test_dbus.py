@@ -18,9 +18,11 @@ from jeepney.wrappers import DBusErrorResponse
 from lyricfetch.song import Song
 from lyricfetch.song import get_current_amarok
 from lyricfetch.song import get_current_cmus
+from lyricfetch.song import get_current_spotify
 
 from sample_responses import sample_response_amarok
 from sample_responses import sample_response_cmus
+from sample_responses import sample_response_spotify
 
 
 class DBusService:
@@ -106,6 +108,37 @@ def test_get_current_amarok():
         service.listen()
 
         song = get_current_amarok()
+        assert song == now_playing
+    finally:
+        if service.name:
+            service.release_name()
+
+
+def test_get_current_spotify():
+    """
+    Check that we can get the current song playing in amarok.
+    """
+    now_playing = Song(artist='Gorod', title='Splinters of Life',
+                       album='Process of a new decline')
+
+    def get_property(msg):
+        body = sample_response_spotify
+        interface = msg.header.fields.get(HeaderFields.interface, None)
+        if interface == 'org.freedesktop.DBus.Properties':
+            if msg.body == ('org.mpris.MediaPlayer2.Player', 'Metadata'):
+                return new_method_return(msg, signature='v', body=body)
+
+    service = DBusService()
+    try:
+        service.request_name('org.mpris.MediaPlayer2.spotify')
+    except DBusErrorResponse:
+        pytest.skip("Can't get the requested name")
+
+    service.install_handler('/org/mpris/MediaPlayer2', 'Get', get_property)
+    try:
+        service.listen()
+
+        song = get_current_spotify()
         assert song == now_playing
     finally:
         if service.name:
