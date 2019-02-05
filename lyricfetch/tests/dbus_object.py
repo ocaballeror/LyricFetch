@@ -1,28 +1,17 @@
 """
-Functions to test dbus-related functionality.
+This module contains the classes and methods to publish dbus objects.
 """
 import asyncio
-import os
-import warnings
+
 from collections import defaultdict
 from multiprocessing import Process
 
-import pytest
 from jeepney.low_level import HeaderFields
 from jeepney.low_level import Message, MessageType
 from jeepney.integrate.blocking import connect_and_authenticate
 from jeepney.bus_messages import DBus
 from jeepney.wrappers import new_method_return
 from jeepney.wrappers import new_error
-
-from lyricfetch.song import Song
-from lyricfetch.song import get_current_amarok
-from lyricfetch.song import get_current_cmus
-from lyricfetch.song import get_current_spotify
-
-from sample_responses import sample_response_amarok
-from sample_responses import sample_response_cmus
-from sample_responses import sample_response_spotify
 
 
 class DBusInterface:
@@ -50,11 +39,15 @@ class DBusObject:
         self.name = name
 
     def release_name(self):
-        reply = self.conn.send_and_get_reply(DBus().ReleaseName(self.name))
-        if reply != (1,):
-            warnings.warn('Error releasing name')
-        else:
+        try:
+            self.conn.send_message(DBus().ReleaseName(self.name))
+        except OSError:
+            # This probably means the name has already been released
             self.name = None
+        except Exception as e:
+            print('Error releasing name', type(e), e)
+            raise
+        self.name = None
 
     def set_handler(self, path, method_name, handler, interface=None):
         addr = (path, interface)
@@ -87,12 +80,16 @@ class DBusObject:
         signature, value = self.interfaces[addr].properties[prop_name]
         return signature, value
 
+    def get_all_properties(self, path, interface):
+        addr = (path, interface)
+        return (list(self.interfaces[addr].properties.items()),)
+
     def _listen(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
         while True:
             try:
                 self.conn.recv_messages()
-            except Exception as e:
+            except Exception:
                 pass
 
     def listen(self):
@@ -100,6 +97,11 @@ class DBusObject:
         self.listen_process.start()
 
     def stop(self):
+        if self.name:
+            try:
+                self.release_name()
+            except Exception:
+                pass
         if self.listen_process and self.listen_process.is_alive():
             self.listen_process.terminate()
 
@@ -163,89 +165,3 @@ class DBusObject:
                 response.header.fields[HeaderFields.sender] = self.name
                 return self.conn.send_message(response)
         return msg
-
-
-def test_get_current_amarok():
-    """
-    Check that we can get the current song playing in amarok.
-    """
-    now_playing = Song(artist='Nightwish', title='Alpenglow',
-                       album='Endless Forms Most Beautiful')
-
-    def reply_msg(msg):
-        body = sample_response_amarok
-        return new_method_return(msg, signature='a{sv}', body=body)
-
-    service = DBusObject()
-    try:
-        service.request_name('org.kde.amarok')
-    except RuntimeError:
-        pytest.skip("Can't get the requested name")
-
-    service.set_handler('/Player', 'GetMetadata', reply_msg)
-    try:
-        service.listen()
-
-        song = get_current_amarok()
-        assert song == now_playing
-    finally:
-        if service.name:
-            service.release_name()
-
-
-def test_get_current_spotify():
-    """
-    Check that we can get the current song playing in amarok.
-    """
-    now_playing = Song(artist='Gorod', title='Splinters of Life',
-                       album='Process of a new decline')
-
-    def get_property(msg):
-        body = sample_response_spotify
-        interface = msg.header.fields.get(HeaderFields.interface, None)
-        if interface == 'org.freedesktop.DBus.Properties':
-            if msg.body == ('org.mpris.MediaPlayer2.Player', 'Metadata'):
-                return new_method_return(msg, signature='v', body=body)
-
-    service = DBusObject()
-    try:
-        service.request_name('org.mpris.MediaPlayer2.spotify')
-    except RuntimeError:
-        pytest.skip("Can't get the requested name")
-
-    service.set_handler('/org/mpris/MediaPlayer2', 'Get', get_property)
-    try:
-        service.listen()
-
-        song = get_current_spotify()
-        assert song == now_playing
-    finally:
-        if service.name:
-            service.release_name()
-
-
-def test_get_current_cmus(monkeypatch, tmp_path):
-    """
-    Test that we can get the current song playing in cmus.
-    """
-    now_playing = Song(artist='Death', title='Baptized In Blood',
-                       album='Scream Bloody Gore')
-    # Create a fake cmus-remote script that will echo our response
-    cmus = tmp_path / 'cmus-remote'
-    contents = """\
-#!/bin/sh
-[ "$1" = "-Q" ] || exit 1
-echo "{}"
-    """
-    contents = contents.format(sample_response_cmus)
-    cmus.write_text(contents)
-
-    # Make the script executable
-    environ = os.environ.copy()
-    environ['PATH'] = str(tmp_path) + ':' + environ['PATH']
-    monkeypatch.setattr(os, 'environ', environ)
-    os.chmod(cmus, 0o755)
-
-    current = get_current_cmus()
-    assert current
-    assert current == now_playing
