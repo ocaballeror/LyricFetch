@@ -5,7 +5,7 @@ These variables are used to test the get_current_song related functions.
 """
 # flake8: noqa: E501
 
-sample_response_amarok = ([
+sample_response_amarok = ('a{sv}', ([
     ('album', ('s', 'Endless Forms Most Beautiful')),
     ('albumartist', ('s', 'Nightwish')),
     ('artist', ('s', 'Nightwish')),
@@ -20,9 +20,9 @@ sample_response_amarok = ([
     ('title', ('s', 'Alpenglow')),
     ('tracknumber', ('i', 11)),
     ('year', ('s', '2015'))
-],)
+],))
 
-sample_response_clementine = (
+sample_response_clementine = ('v', (
     ('a{sv}', [
         ('bitrate', ('i', 252)),
         ('mpris:artUrl', ('s', 'file:///tmp/clementine-art-y30335.jpg')),
@@ -41,9 +41,11 @@ sample_response_clementine = (
         ('xesam:trackNumber', ('i', 1)),
         ('xesam:url', ('s', 'file:///Music/Rush/[1976] 2112/01 2112.mp3')),
         ('xesam:useCount', ('i', 1)),
-        ('year', ('i', 1976))]),)
+        ('year', ('i', 1976))
+        ]
+    ),))
 
-sample_response_spotify = (
+sample_response_spotify = ('v', (
     ('a{sv}', [
         ('mpris:trackid', ('s', 'spotify:track:3Dja8y60xnXAJQLl1tX8UR')),
         ('mpris:length', ('t', 312746000)),
@@ -56,8 +58,8 @@ sample_response_spotify = (
         ('xesam:title', ('s', 'Splinters Of Life')),
         ('xesam:trackNumber', ('i', 6)),
         ('xesam:url', ('s', 'https://open.spotify.com/track/3Dja8y60xnXAJQLl1tX8UR'))
-    ]),
-)
+        ]),
+    ))
 
 sample_response_cmus = """
 status playing
@@ -87,4 +89,3 @@ set softvol false
 set vol_left 0
 set vol_right 0
 """
-
