@@ -25,12 +25,21 @@ from sample_responses import sample_response_cmus
 from sample_responses import sample_response_spotify
 
 
+class DBusInterface:
+    def __init__(self):
+        self.methods = {}
+        self.properties = {}
+
+    def __repr__(self):
+        return f'Methods: {self.methods}, Properties: {self.properties}'
+
+
 class DBusService:
     def __init__(self):
         self.name = None
+        self.interfaces = defaultdict(DBusInterface)
         self.stop = False
         self.conn = connect_and_authenticate(bus='SESSION')
-        self.handlers = defaultdict(dict)
         self.conn.router.on_unhandled = self.handle_msg
         self.listen_process = Process(target=self._listen)
 
@@ -51,8 +60,36 @@ class DBusService:
         else:
             self.name = None
 
-    def install_handler(self, path, method_name, handler):
-        self.handlers[path][method_name] = handler
+    def set_handler(self, path, method_name, handler, interface=None):
+        addr = (path, interface)
+        self.interfaces[addr].methods[method_name] = handler
+
+    def get_handler(self, path, method_name, interface=None):
+        addr = (path, interface)
+        if interface is None:
+            method = self.interfaces[addr].methods.get(method_name, None)
+            if method:
+                return method
+            for i_addr, iface in self.interfaces.items():
+                if i_addr[0] == path and method_name in iface.methods:
+                    return iface.methods[method_name]
+        else:
+            if method_name in self.interfaces[addr].methods:
+                return self.interfaces[addr].methods[method_name]
+        raise KeyError(f"Unregistered method '{method_name}'")
+
+    def set_property(self, path, prop_name, signature, value, interface=None):
+        addr = (path, interface)
+        self.interfaces[addr].properties[prop_name] = (signature, value)
+
+    def get_property(self, path, prop_name, interface=None):
+        addr = (path, interface)
+        if prop_name not in self.interfaces[addr].properties:
+            err = f"Property '{prop_name}' not registered on this interface"
+            raise KeyError(err)
+
+        signature, value = self.interfaces[addr].properties[prop_name]
+        return signature, value
 
     def _listen(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
@@ -65,23 +102,64 @@ class DBusService:
     def stop(self):
         self.listen_process.terminate()
 
+    def _handle_property_msg(self, msg):
+        hdr = msg.header
+        path = hdr.fields[HeaderFields.path]
+        method = hdr.fields[HeaderFields.member]
+        iface = msg.body[0]
+        if method == 'Get':
+            try:
+                _, prop_name = msg.body
+                signature, value = self.get_property(path, prop_name, iface)
+                return new_method_return(msg, signature, value)
+            except KeyError as error:
+                return new_error(msg, 'KeyError', signature='s',
+                                 body=(str(error),))
+        elif method == 'Set':
+            _, prop_name, (signature, value) = msg.body
+            self.set_property(path, prop_name, signature, value, iface)
+        elif method == 'GetAll':
+            try:
+                properties = self.get_all_properties(path, iface)
+                return new_method_return(msg, 'a{sv}', properties)
+            except KeyError as error:
+                return new_error(msg, 'KeyError', signature='s',
+                                 body=(str(error),))
+
+        return None
+
+    def _handle_method_call(self, msg):
+        hdr = msg.header
+        path = hdr.fields[HeaderFields.path]
+        method = hdr.fields[HeaderFields.member]
+        iface = hdr.fields.get(HeaderFields.interface, None)
+        try:
+            method = self.get_handler(path, method, iface)
+            signature, body = method()
+            return new_method_return(msg, signature, body)
+        except Exception as error:
+            return new_error(msg, str(error), signature='s',
+                             body=(str(error), ))
+
+        return None
+
     def handle_msg(self, msg):
         hdr = msg.header
         if not hdr.message_type == MessageType.method_call:
             return
 
-        path = hdr.fields[HeaderFields.path]
-        method = hdr.fields[HeaderFields.member]
-        if path not in self.handlers:
-            return
-        if method not in self.handlers[path]:
-            return
+        iface = hdr.fields.get(HeaderFields.interface, None)
+        if iface == 'org.freedesktop.DBus.Properties':
+            response = self._handle_property_msg(msg)
+        else:
+            response = self._handle_method_call(msg)
 
-        response = self.handlers[path][method](msg)
         if isinstance(response, Message):
-            if response.header.message_type == MessageType.method_return:
+            msg_type = response.header.message_type
+            if msg_type in (MessageType.method_return, MessageType.error):
                 sender = msg.header.fields[HeaderFields.sender]
                 response.header.fields[HeaderFields.destination] = sender
+                response.header.fields[HeaderFields.sender] = self.name
                 return self.conn.send_message(response)
         return msg
 
@@ -103,7 +181,7 @@ def test_get_current_amarok():
     except DBusErrorResponse:
         pytest.skip("Can't get the requested name")
 
-    service.install_handler('/Player', 'GetMetadata', reply_msg)
+    service.set_handler('/Player', 'GetMetadata', reply_msg)
     try:
         service.listen()
 
@@ -134,7 +212,7 @@ def test_get_current_spotify():
     except DBusErrorResponse:
         pytest.skip("Can't get the requested name")
 
-    service.install_handler('/org/mpris/MediaPlayer2', 'Get', get_property)
+    service.set_handler('/org/mpris/MediaPlayer2', 'Get', get_property)
     try:
         service.listen()
 
