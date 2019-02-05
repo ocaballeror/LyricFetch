@@ -3,7 +3,6 @@ Functions to test dbus-related functionality.
 """
 import asyncio
 import os
-import warnings
 from collections import defaultdict
 from multiprocessing import Process
 
@@ -50,11 +49,15 @@ class DBusObject:
         self.name = name
 
     def release_name(self):
-        reply = self.conn.send_and_get_reply(DBus().ReleaseName(self.name))
-        if reply != (1,):
-            warnings.warn('Error releasing name')
-        else:
+        try:
+            self.conn.send_message(DBus().ReleaseName(self.name))
+        except OSError:
+            # This probably means the name has already been released
             self.name = None
+        except Exception as e:
+            print('Error releasing name', type(e), e)
+            raise
+        self.name = None
 
     def set_handler(self, path, method_name, handler, interface=None):
         addr = (path, interface)
@@ -100,6 +103,11 @@ class DBusObject:
         self.listen_process.start()
 
     def stop(self):
+        if self.name:
+            try:
+                self.release_name()
+            except Exception as e:
+                pass
         if self.listen_process and self.listen_process.is_alive():
             self.listen_process.terminate()
 
@@ -186,8 +194,7 @@ def test_get_current_amarok():
         song = get_current_amarok()
         assert song == now_playing
     finally:
-        if service.name:
-            service.release_name()
+        service.stop()
 
 
 def test_get_current_spotify():
@@ -213,9 +220,7 @@ def test_get_current_spotify():
         song = get_current_spotify()
         assert song == now_playing
     finally:
-        if service.name:
-            service.release_name()
-
+        service.stop()
 
 def test_get_current_cmus(monkeypatch, tmp_path):
     """
