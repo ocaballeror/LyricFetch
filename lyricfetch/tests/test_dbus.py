@@ -34,7 +34,7 @@ class DBusInterface:
         return f'Methods: {self.methods}, Properties: {self.properties}'
 
 
-class DBusService:
+class DBusObject:
     def __init__(self):
         self.name = None
         self.interfaces = defaultdict(DBusInterface)
@@ -175,7 +175,7 @@ def test_get_current_amarok():
         body = sample_response_amarok
         return new_method_return(msg, signature='a{sv}', body=body)
 
-    service = DBusService()
+    service = DBusObject()
     try:
         service.request_name('org.kde.amarok')
     except DBusErrorResponse:
@@ -206,7 +206,7 @@ def test_get_current_spotify():
             if msg.body == ('org.mpris.MediaPlayer2.Player', 'Metadata'):
                 return new_method_return(msg, signature='v', body=body)
 
-    service = DBusService()
+    service = DBusObject()
     try:
         service.request_name('org.mpris.MediaPlayer2.spotify')
     except DBusErrorResponse:
