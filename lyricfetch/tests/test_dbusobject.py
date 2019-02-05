@@ -8,7 +8,7 @@ from jeepney.wrappers import Properties
 from jeepney.wrappers import DBusErrorResponse
 from jeepney.integrate.blocking import connect_and_authenticate
 
-from test_dbus import DBusObject
+from dbus_object import DBusObject
 
 
 @pytest.fixture(scope='function')
