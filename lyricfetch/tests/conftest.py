@@ -11,6 +11,7 @@ import pytest
 import eyed3
 
 from lyricfetch import CONFIG
+from dbus_object import DBusObject
 
 
 @pytest.fixture(scope='session')
@@ -73,3 +74,17 @@ def chdir(newdir):
         yield
     finally:
         os.chdir(prevdir)
+
+
+@pytest.fixture
+def dbus_service(request):
+    service = DBusObject()
+    try:
+        service.request_name(request.param)
+    except RuntimeError:
+        pytest.skip("Can't get the requested name")
+
+    try:
+        yield service
+    finally:
+        service.stop()

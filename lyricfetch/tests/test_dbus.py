@@ -9,60 +9,45 @@ from lyricfetch.song import get_current_amarok
 from lyricfetch.song import get_current_cmus
 from lyricfetch.song import get_current_spotify
 
-from dbus_object import DBusObject
+from conftest import dbus_service
 from sample_responses import sample_response_amarok
 from sample_responses import sample_response_cmus
 from sample_responses import sample_response_spotify
 
 
-def test_get_current_amarok():
+@pytest.mark.parametrize('dbus_service', ['org.kde.amarok'], indirect=True)
+def test_get_current_amarok(dbus_service):
     """
     Check that we can get the current song playing in amarok.
     """
     now_playing = Song(artist='Nightwish', title='Alpenglow',
                        album='Endless Forms Most Beautiful')
 
-    service = DBusObject()
-    try:
-        service.request_name('org.kde.amarok')
-    except RuntimeError:
-        pytest.skip("Can't get the requested name")
+    dbus_service.set_handler('/Player', 'GetMetadata',
+                             lambda: sample_response_amarok)
+    dbus_service.listen()
 
-    service.set_handler('/Player', 'GetMetadata',
-                        lambda: sample_response_amarok)
-    try:
-        service.listen()
-
-        song = get_current_amarok()
-        assert song == now_playing
-    finally:
-        service.stop()
+    song = get_current_amarok()
+    assert song == now_playing
 
 
-def test_get_current_spotify():
+@pytest.mark.parametrize('dbus_service', ['org.mpris.MediaPlayer2.spotify'],
+                         indirect=True)
+def test_get_current_spotify(dbus_service):
     """
     Check that we can get the current song playing in amarok.
     """
     now_playing = Song(artist='Gorod', title='Splinters of Life',
                        album='Process of a new decline')
 
-    service = DBusObject()
-    try:
-        service.request_name('org.mpris.MediaPlayer2.spotify')
-    except RuntimeError:
-        pytest.skip("Can't get the requested name")
-
     path = '/org/mpris/MediaPlayer2'
     interface = 'org.mpris.MediaPlayer2.Player'
     signature, value = sample_response_spotify
-    service.set_property(path, 'Metadata', signature, value, interface)
-    try:
-        service.listen()
+    dbus_service.set_property(path, 'Metadata', signature, value, interface)
+    dbus_service.listen()
 
-        song = get_current_spotify()
-        assert song == now_playing
-    finally:
-        service.stop()
+    song = get_current_spotify()
+    assert song == now_playing
 
 
 def test_get_current_cmus(monkeypatch, tmp_path):
