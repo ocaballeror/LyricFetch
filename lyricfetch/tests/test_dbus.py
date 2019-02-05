@@ -90,6 +90,10 @@ class DBusObject:
         signature, value = self.interfaces[addr].properties[prop_name]
         return signature, value
 
+    def get_all_properties(self, path, interface):
+        addr = (path, interface)
+        return (list(self.interfaces[addr].properties.items()),)
+
     def _listen(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
         while True:
