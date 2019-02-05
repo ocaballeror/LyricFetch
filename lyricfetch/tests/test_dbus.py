@@ -13,7 +13,7 @@ from jeepney.low_level import Message, MessageType
 from jeepney.integrate.blocking import connect_and_authenticate
 from jeepney.bus_messages import DBus
 from jeepney.wrappers import new_method_return
-from jeepney.wrappers import DBusErrorResponse
+from jeepney.wrappers import new_error
 
 from lyricfetch.song import Song
 from lyricfetch.song import get_current_amarok
@@ -178,7 +178,7 @@ def test_get_current_amarok():
     service = DBusObject()
     try:
         service.request_name('org.kde.amarok')
-    except DBusErrorResponse:
+    except RuntimeError:
         pytest.skip("Can't get the requested name")
 
     service.set_handler('/Player', 'GetMetadata', reply_msg)
@@ -209,7 +209,7 @@ def test_get_current_spotify():
     service = DBusObject()
     try:
         service.request_name('org.mpris.MediaPlayer2.spotify')
-    except DBusErrorResponse:
+    except RuntimeError:
         pytest.skip("Can't get the requested name")
 
     service.set_handler('/org/mpris/MediaPlayer2', 'Get', get_property)
