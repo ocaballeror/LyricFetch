@@ -172,17 +172,14 @@ def test_get_current_amarok():
     now_playing = Song(artist='Nightwish', title='Alpenglow',
                        album='Endless Forms Most Beautiful')
 
-    def reply_msg(msg):
-        body = sample_response_amarok
-        return new_method_return(msg, signature='a{sv}', body=body)
-
     service = DBusObject()
     try:
         service.request_name('org.kde.amarok')
     except RuntimeError:
         pytest.skip("Can't get the requested name")
 
-    service.set_handler('/Player', 'GetMetadata', reply_msg)
+    service.set_handler('/Player', 'GetMetadata',
+                        lambda: sample_response_amarok)
     try:
         service.listen()
 
@@ -200,20 +197,16 @@ def test_get_current_spotify():
     now_playing = Song(artist='Gorod', title='Splinters of Life',
                        album='Process of a new decline')
 
-    def get_property(msg):
-        body = sample_response_spotify
-        interface = msg.header.fields.get(HeaderFields.interface, None)
-        if interface == 'org.freedesktop.DBus.Properties':
-            if msg.body == ('org.mpris.MediaPlayer2.Player', 'Metadata'):
-                return new_method_return(msg, signature='v', body=body)
-
     service = DBusObject()
     try:
         service.request_name('org.mpris.MediaPlayer2.spotify')
     except RuntimeError:
         pytest.skip("Can't get the requested name")
 
-    service.set_handler('/org/mpris/MediaPlayer2', 'Get', get_property)
+    path = '/org/mpris/MediaPlayer2'
+    interface = 'org.mpris.MediaPlayer2.Player'
+    signature, value = sample_response_spotify
+    service.set_property(path, 'Metadata', signature, value, interface)
     try:
         service.listen()
 
