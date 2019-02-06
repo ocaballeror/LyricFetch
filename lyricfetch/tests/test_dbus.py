@@ -8,11 +8,12 @@ from lyricfetch.song import Song
 from lyricfetch.song import get_current_amarok
 from lyricfetch.song import get_current_cmus
 from lyricfetch.song import get_current_spotify
+from lyricfetch.song import get_current_clementine
 
-from conftest import dbus_service
 from sample_responses import sample_response_amarok
 from sample_responses import sample_response_cmus
 from sample_responses import sample_response_spotify
+from sample_responses import sample_response_clementine
 
 
 @pytest.mark.parametrize('dbus_service', ['org.kde.amarok'], indirect=True)
@@ -31,23 +32,27 @@ def test_get_current_amarok(dbus_service):
     assert song == now_playing
 
 
-@pytest.mark.parametrize('dbus_service', ['org.mpris.MediaPlayer2.spotify'],
-                         indirect=True)
-def test_get_current_spotify(dbus_service):
+@pytest.mark.parametrize('dbus_service,song,response,get_current', [
+    ('org.mpris.MediaPlayer2.spotify',
+     Song(artist='Gorod', title='Splinters of Life',
+          album='Process of a new decline'),
+     sample_response_spotify, get_current_spotify),
+    ('org.mpris.MediaPlayer2.clementine',
+     Song(artist='Rush', title='2112', album='2112'),
+     sample_response_clementine, get_current_clementine),
+], ids=['spotify', 'clementine'], indirect=['dbus_service'])
+def test_get_current_spotify(dbus_service, song, response, get_current):
     """
     Check that we can get the current song playing in amarok.
     """
-    now_playing = Song(artist='Gorod', title='Splinters of Life',
-                       album='Process of a new decline')
-
     path = '/org/mpris/MediaPlayer2'
     interface = 'org.mpris.MediaPlayer2.Player'
-    signature, value = sample_response_spotify
+    signature, value = response
     dbus_service.set_property(path, 'Metadata', signature, value, interface)
     dbus_service.listen()
 
-    song = get_current_spotify()
-    assert song == now_playing
+    current = get_current()
+    assert current == song
 
 
 def test_get_current_cmus(monkeypatch, tmp_path):
