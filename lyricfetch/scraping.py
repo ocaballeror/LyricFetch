@@ -305,7 +305,7 @@ def musixmatch(song):
     url = 'https://www.musixmatch.com/lyrics/{}/{}'.format(artist, title)
     soup = get_url(url)
     text = ''
-    contents = soup.find_all('p', class_='mxm-lyrics__content ')
+    contents = soup.find_all('p', class_='mxm-lyrics__content')
     for p in contents:
         text += p.get_text().strip()
         if p != contents[-1]:
