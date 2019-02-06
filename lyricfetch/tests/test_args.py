@@ -57,6 +57,19 @@ def test_argv_flag(monkeypatch, arg, config):
     assert CONFIG[config]
 
 
+@pytest.mark.parametrize('flag, expect', [
+    ('', 50), ('-v', 20), ('-vv', 10),
+])
+def test_argv_verbose(flag, expect, monkeypatch):
+    """
+    Check that the '-v' and '-vv' flags set the appropriate logging level.
+    """
+    new_argv = ['python', __file__] + [flag]
+    monkeypatch.setattr(sys, 'argv', new_argv)
+    parse_argv()
+    assert lyricfetch.logger.level == expect
+
+
 @pytest.mark.parametrize('num', [-1, 0])
 def test_argv_invalid_jobs(monkeypatch, num):
     """
