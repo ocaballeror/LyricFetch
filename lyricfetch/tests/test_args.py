@@ -248,17 +248,27 @@ def test_argv_incompatible(monkeypatch, args):
         parse_argv()
 
 
-def test_load_from_file_errors(tmpdir):
+def test_load_from_file_errors(tmpdir, monkeypatch):
     """
     Test the errors that can be raised from `load_from_file()`.
     """
+    # Read from a directory
     assert load_from_file(tmpdir) is None
 
+    # Read from an inexistent file
     tmpdir.remove()
     assert load_from_file(tmpdir) is None
 
+    # Read from an empty file
     with NamedTemporaryFile('w') as tmp:
         assert not load_from_file(tmp.name)
+
+    # Call parseargv with an empty file (this should raise an error)
+    with NamedTemporaryFile('w') as tmp:
+        new_args = ['python', __file__, '--from-file', tmp.name]
+        monkeypatch.setattr(sys, 'argv', new_args)
+        with pytest.raises(ValueError):
+            parse_argv()
 
 
 def test_main_errors(monkeypatch):
