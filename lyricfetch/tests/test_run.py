@@ -1,11 +1,13 @@
 """
 Main tests module.
 """
+import os
 import shutil
 import tempfile
 import time
 from queue import Queue
 
+import pytest
 
 import lyricfetch.run
 from lyricfetch import CONFIG
@@ -142,6 +144,7 @@ def test_getlyrics_threaded():
     assert result.runtimes[source_3] < 1
 
 
+@pytest.mark.skipif(os.cpu_count() == 1, reason="Can't test with one CPU core")
 def test_run_mp(monkeypatch):
     """
     Test `run_mp()`, which should concurrently search for the lyrics of a list
