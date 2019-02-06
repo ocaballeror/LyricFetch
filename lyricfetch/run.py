@@ -90,7 +90,30 @@ def exclude_sources(exclude, section=False):
     return newlist
 
 
-def get_lyrics(song, l_sources=None):
+def get_lyrics(song, l_sources=None, threaded=False):
+    """
+    Selectively calls _get_lyrics or _get_lyrics_threaded to get the lyrics for
+    a single song.
+    """
+    if l_sources is None:
+        l_sources = sources
+
+    if song.lyrics and not CONFIG['overwrite']:
+        logger.debug('%s already has embedded lyrics', song)
+        return None
+
+    func = _get_lyrics_threaded if threaded else _get_lyrics
+    result = func(song, l_sources)
+    if song.lyrics:
+        logger.info('++ %s: Found lyrics for %s\n',
+                    id_source(result.source, full=True), song)
+    else:
+        logger.info("Couldn't find lyrics for %s\n", song)
+        result.source = None
+    return result
+
+
+def _get_lyrics(song, l_sources):
     """
     Searches for lyrics of a single song and returns a Result object with the
     various stats collected in the process.
@@ -98,51 +121,32 @@ def get_lyrics(song, l_sources=None):
     The optional parameter 'sources' specifies an alternative list of sources.
     If not present, the main list will be used.
     """
-    if l_sources is None:
-        l_sources = sources
-
-    if song.lyrics and not CONFIG['overwrite']:
-        logger.debug('%s already has embedded lyrics', song)
-        return None
-
     runtimes = {}
     source = None
+    lyrics = ''
     for l_source in l_sources:
         start = time.time()
         try:
             lyrics = l_source(song)
         except (HTTPError, HTTPException, URLError, ConnectionError):
-            lyrics = ''
+            pass
 
         runtimes[l_source] = time.time() - start
         if lyrics != '':
             source = l_source
             break
 
-    if lyrics != '':
-        logger.info('++ %s: Found lyrics for %s\n', source.__name__, song)
-        song.lyrics = lyrics
-    else:
-        logger.info("Couldn't find lyrics for %s\n", song)
-        source = None
-
+    song.lyrics = lyrics
     return Result(song, source, runtimes)
 
 
-def get_lyrics_threaded(song, l_sources=None):
+def _get_lyrics_threaded(song, l_sources=None):
     """
     Launches a pool of threads to search for the lyrics of a single song.
 
     The optional parameter 'sources' specifies an alternative list of sources.
     If not present, the main list will be used.
     """
-    if l_sources is None:
-        l_sources = sources
-
-    if song.lyrics and not CONFIG['overwrite']:
-        logger.debug('%s already has embedded lyrics', song)
-        return None
-
     runtimes = {}
     queue = Queue()
     pool = [LyrThread(source, song, queue) for source in l_sources]
@@ -154,14 +158,8 @@ def get_lyrics_threaded(song, l_sources=None):
         runtimes[result['source']] = result['runtime']
         if result['lyrics']:
             break
-
-    if result['lyrics']:
-        song.lyrics = result['lyrics']
-        source = result['source']
-    else:
-        source = None
-
-    return Result(song, source, runtimes)
+    song.lyrics = result['lyrics']
+    return Result(song, result['source'], runtimes)
 
 
 def process_result(result):
@@ -195,7 +193,7 @@ def run(songs):
     Calls get_lyrics_threaded for a song or list of songs.
     """
     if not hasattr(songs, '__iter__'):
-        result = get_lyrics_threaded(songs)
+        result = get_lyrics(songs, threaded=True)
         process_result(result)
     else:
         start = time.time()

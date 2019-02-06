@@ -16,7 +16,6 @@ from lyricfetch import Stats
 from lyricfetch import Song
 from lyricfetch import get_lyrics
 from lyricfetch.run import LyrThread
-from lyricfetch.run import get_lyrics_threaded
 from lyricfetch.run import process_result
 from lyricfetch.run import run_mp
 from lyricfetch.scraping import azlyrics
@@ -53,6 +52,8 @@ def test_getlyrics_dont_overwrite(mp3file):
     song = Song.from_filename(mp3file)
     CONFIG['overwrite'] = False
     assert get_lyrics(song) is None
+    assert song.lyrics == placeholder
+    assert get_lyrics(song, threaded=True) is None
     assert song.lyrics == placeholder
 
 
@@ -116,7 +117,7 @@ def test_getlyrics_threaded():
     # source_2 is faster than source_1, so we should expect it to return lyrics
     # first, and source_1 to not even be in the result that's returned
     song = Song(artist='Slipknot', title='The virus of life')
-    result = get_lyrics_threaded(song, l_sources=[source_1, source_2])
+    result = get_lyrics(song, l_sources=[source_1, source_2], threaded=True)
     assert song.lyrics == 'Lyrics 2'
     assert result.song.lyrics == 'Lyrics 2'
     assert result.source == source_2
@@ -127,7 +128,7 @@ def test_getlyrics_threaded():
     # any lyrics, so we expect the function to ignore that result and give us
     # the lyrics from source_1
     song = Song(artist='Power trip', title='Ruination')
-    result = get_lyrics_threaded(song, l_sources=[source_1, source_3])
+    result = get_lyrics(song, l_sources=[source_1, source_3], threaded=True)
     assert song.lyrics == 'Lyrics 1'
     assert result.song.lyrics == 'Lyrics 1'
     assert result.source == source_1
@@ -137,7 +138,7 @@ def test_getlyrics_threaded():
     # Lastly, we try only source_3, so we should expect the result to have no
     # lyrics, and its `source` attribute to be None.
     song = Song('Amon amarth', 'Back on northern shores')
-    result = get_lyrics_threaded(song, l_sources=[source_3] * 4)
+    result = get_lyrics(song, l_sources=[source_3] * 4, threaded=True)
     assert song.lyrics == ''
     assert result.song.lyrics == ''
     assert result.source is None
@@ -195,12 +196,12 @@ def test_run_one_song(mp3file, monkeypatch):
     """
     song_lyrics = 'some lyrics here'
 
-    def fake_getlyricsthreaded(songs):
+    def fake_getlyricsthreaded(songs, *args, **kwargs):
         song.lyrics = song_lyrics
         return Result(song=song, source='whatever', runtimes={})
 
     song = Song.from_filename(mp3file)
-    monkeypatch.setattr(lyricfetch.run, 'get_lyrics_threaded',
+    monkeypatch.setattr(lyricfetch.run, '_get_lyrics_threaded',
                         fake_getlyricsthreaded)
     lyricfetch.run.run(song)
     assert Song.from_filename(mp3file).lyrics == song_lyrics
