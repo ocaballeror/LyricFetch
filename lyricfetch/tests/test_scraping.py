@@ -81,6 +81,12 @@ def test_get_url_json():
     assert 'data' in json_response
 
 
+def test_get_url_wrong_parser():
+    url = "http://example.com"
+    with pytest.raises(ValueError):
+        get_url(url, parser='what?')
+
+
 def test_get_url_tlsv1():
     """
     Check that `get_url` can get data from a website using an older encryption
