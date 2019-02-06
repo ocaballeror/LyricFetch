@@ -152,8 +152,9 @@ def test_run_mp(monkeypatch):
     # fake_getlyrics will return: None, a Result with 'random_source' and a
     # Result with `None` as source (i.e. the lyrics were not found).
     songs = [False, azlyrics, None]
+    monkeypatch.setitem(lyricfetch.CONFIG, 'jobcount', len(songs))
+
     start_time = time.time()
-    CONFIG['jobcount'] = len(songs)
     stats = run_mp(songs)
     assert time.time() - start_time < len(songs)
 
