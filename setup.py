@@ -51,7 +51,6 @@ setup(
         'test': [
             'tox',
             'pytest',
-            'pytest-xdist',
             'pytest-cov',
         ],
     },
