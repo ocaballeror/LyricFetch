@@ -41,9 +41,9 @@ def check_site_available(site, secure=False):
     return True
 
 
-def test_get_url():
+def test_get_url_html():
     """
-    Check that `get_url` returns the contents of a url using different parsers.
+    Check that `get_url` returns the contents of a url using the html parser.
     """
     test_site = 'http://example.com'
     if not check_site_available(test_site):
@@ -56,6 +56,11 @@ def test_get_url():
     assert hasattr(soup, 'head')
     assert hasattr(soup, 'body')
 
+
+def test_get_url_raw():
+    """
+    Check that `get_url` returns the contents of a url using the raw "parser".
+    """
     raw = get_url('http://example.com', parser='raw')
     assert '<html>' in raw
     assert '<head>' in raw
@@ -64,6 +69,11 @@ def test_get_url():
     assert '</head>' in raw
     assert '</html>' in raw
 
+
+def test_get_url_json():
+    """
+    Check that `get_url` returns the contents of a url using the json parser.
+    """
     url = 'http://jsonapiplayground.reyesoft.com/v2/authors'
     json_response = get_url(url, parser='json')
     assert json_response
