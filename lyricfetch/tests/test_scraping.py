@@ -7,7 +7,6 @@ from http.client import RemoteDisconnected
 
 import pytest
 
-from conftest import lastfm_key
 from lyricfetch import Song
 from lyricfetch import exclude_sources
 from lyricfetch import sources
@@ -232,12 +231,11 @@ def test_scrape(site, artist, title):
 @pytest.mark.parametrize('artist,title', [
     ('anthrax', 'i am the law'),
 ])
-def test_scrape_darklyrics(artist, title):
+def test_scrape_darklyrics(artist, title, lastfm_key):
     """
     Test scraping darklyrics, whose banning policy requires some special checks
     to be performed.
     """
-    lastfm_key()
     extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
     if not check_site_available(extra_check):
         pytest.skip('Darklyrics blocked you again')
