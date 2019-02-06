@@ -24,8 +24,9 @@ def check_site_available(site, secure=False):
     """
     Helper function to check if a specific website is available.
     """
-    url = id_source(site, full=True).lower()
+    url = site
     if not url.startswith('http'):
+        url = id_source(site, full=True).lower()
         prefix = 'https' if secure else 'http'
         url = f'{prefix}://{url}'
 
