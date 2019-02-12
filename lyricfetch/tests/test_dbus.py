@@ -16,20 +16,21 @@ from sample_responses import sample_response_spotify
 from sample_responses import sample_response_clementine
 
 
-@pytest.mark.parametrize('dbus_service', ['org.kde.amarok'], indirect=True)
-def test_get_current_amarok(dbus_service):
+@pytest.mark.parametrize('dbus_service,path,iface,song,response,get_current', [
+    ('org.kde.amarok', '/Player', '',
+     Song('Nightwish', 'Alpenglow', 'Endless Forms Most Beautiful'),
+     sample_response_amarok, get_current_amarok),
+], ids=['amarok'], indirect=['dbus_service'])
+def test_get_current_metadata(dbus_service, path, iface, song, response,
+                              get_current):
     """
     Check that we can get the current song playing in amarok.
     """
-    now_playing = Song(artist='Nightwish', title='Alpenglow',
-                       album='Endless Forms Most Beautiful')
-
-    dbus_service.set_handler('/Player', 'GetMetadata',
-                             lambda: sample_response_amarok)
+    dbus_service.set_handler(path, 'GetMetadata', lambda: response,
+                             interface=iface)
     dbus_service.listen()
 
-    song = get_current_amarok()
-    assert song == now_playing
+    assert get_current() == song
 
 
 @pytest.mark.parametrize('dbus_service,song,response,get_current', [
