@@ -4,11 +4,13 @@ Functions to test dbus-related functionality.
 import os
 
 import pytest
+import lyricfetch
 from lyricfetch.song import Song
 from lyricfetch.song import get_current_amarok
 from lyricfetch.song import get_current_cmus
 from lyricfetch.song import get_current_spotify
 from lyricfetch.song import get_current_clementine
+from lyricfetch.song import get_current_song
 
 from sample_responses import sample_response_amarok
 from sample_responses import sample_response_cmus
@@ -81,3 +83,25 @@ echo "{}"
     current = get_current_cmus()
     assert current
     assert current == now_playing
+
+
+def test_get_current_song(monkeypatch):
+    """
+    Test the get_current_song function, which should query all the possible
+    sources until one of them returns a valid answer.
+    """
+    def raise_error():
+        raise Exception
+
+    fake_probers = {
+        'fault1': raise_error,
+        'fault2': raise_error,
+        'good1': lambda: 'good 1',
+        'good2': lambda: 'good 2',
+        'fault3': raise_error,
+    }
+    monkeypatch.setattr(lyricfetch.song, 'probers', fake_probers)
+    assert get_current_song() == 'good 1'
+
+    monkeypatch.setattr(lyricfetch.song, 'probers', {})
+    assert get_current_song() is None
