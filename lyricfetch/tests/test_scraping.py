@@ -84,7 +84,7 @@ def test_get_url_json():
 
 
 def test_get_url_wrong_parser():
-    url = "http://example.com"
+    url = 'http://example.com'
     with pytest.raises(ValueError):
         get_url(url, parser='what?')
 
