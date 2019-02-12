@@ -5,5 +5,4 @@ source = lyricfetch
 [report]
 show_missing = True
 exclude_lines =
-    def __repr__
     if __name__ == .__main__.:
