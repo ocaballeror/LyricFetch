@@ -42,7 +42,7 @@ def test_get_current_metadata(dbus_service, path, iface, song, response,
      Song(artist='Rush', title='2112', album='2112'),
      sample_response_clementine, get_current_clementine),
 ], ids=['spotify', 'clementine'], indirect=['dbus_service'])
-def test_get_current_spotify(dbus_service, song, response, get_current):
+def test_get_current_mpris2(dbus_service, song, response, get_current):
     """
     Check that we can get the current song playing in amarok.
     """
