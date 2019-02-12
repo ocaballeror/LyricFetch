@@ -36,7 +36,8 @@ class Song:
     def __repr__(self):
         items = self.__dict__.copy()
         del items['lyrics']
-        values = ('='.join((k, v)) for k, v in items.items() if v)
+        items = {k: f'"{v}"' for k, v in items.items() if v}  # wrap in quotes
+        values = ('='.join((k, v)) for k, v in items.items())
         return 'Song({})'.format(', '.join(values))
 
     def __str__(self):
