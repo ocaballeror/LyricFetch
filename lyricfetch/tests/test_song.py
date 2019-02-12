@@ -94,3 +94,35 @@ def test_song_fetch_album_name(lastfm_key):
     song = Song(artist='Dropkick Murphys', title='asdfasdfasdf')
     song.fetch_album_name()
     assert song.album == ''
+
+
+def test_song_repr():
+    """
+    Test the song repr method, which should generate a valid song constructor
+    statement.
+    """
+    song = Song('Allegaeon', 'All hail science', 'Proponent for sentience')
+    song.lyrics = 'Some lyrics here'
+    rep = repr(song).lower()
+
+    assert 'song(' in rep
+    assert 'artist="allegaeon"' in rep
+    assert 'title="all hail science"' in rep
+    assert 'album="proponent for sentience"' in rep
+    assert 'lyrics' not in rep
+
+    assert eval(repr(song)) == song
+
+
+def test_song_str():
+    """
+    Test song conversion to str.
+    """
+    song = Song('First fragment', 'Dasein', 'Dasein')
+    song.lyrics = 'Some lyrics here'
+    rep = str(song).lower()
+
+    assert rep == 'first fragment - dasein'
+
+    song.filename = './song.mp3'
+    assert str(song) == song.filename
