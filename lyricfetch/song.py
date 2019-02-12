@@ -201,13 +201,14 @@ def get_current_clementine():
     Get the current song from clementine.
     """
     # mpris_version 2
-    try:
-        return get_info_mpris2('clementine')
-    except DBusErrorResponse:
-        bus_name = 'org.mpris.clementine'
-        path = '/Player'
-        interface = 'org.freedesktop.MediaPlayer'
-        return dbus_get_metadata(path, bus_name, interface)
+    return get_info_mpris2('clementine')
+
+
+def get_current_spotify():
+    """
+    Get the current song from spotify.
+    """
+    return get_info_mpris2('spotify')
 
 
 def get_current_cmus():
@@ -231,13 +232,6 @@ def get_current_cmus():
         del info['albumartist']
 
     return Song(**info)
-
-
-def get_current_spotify():
-    """
-    Get the current song from spotify.
-    """
-    return get_info_mpris2('spotify')
 
 
 probers = {
