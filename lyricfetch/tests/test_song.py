@@ -30,11 +30,17 @@ def test_song_from_filename_errors():
     Test the different errors that may be raised from calling
     Song.from_filename().
     """
+    # Empty filename
     assert Song.from_filename('') is None
 
+    # Invalid mp3 file
     with NamedTemporaryFile() as temp:
         assert Song.from_filename(temp.name) is None
 
+    # Inexistent file
+    assert Song.from_filename(temp.name) is None
+
+    # Directory
     with TemporaryDirectory() as temp:
         assert Song.from_filename(temp) is None
 
