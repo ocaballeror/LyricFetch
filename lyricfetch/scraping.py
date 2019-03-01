@@ -35,7 +35,7 @@ def get_url(url, parser='html'):
 
     response = response.read()
     if parser == 'html':
-        return BeautifulSoup(response, 'html.parser')
+        return BeautifulSoup(response, 'html.parser', from_encoding='utf-8')
     elif parser == 'json':
         return json.loads(response)
     elif parser == 'raw':
