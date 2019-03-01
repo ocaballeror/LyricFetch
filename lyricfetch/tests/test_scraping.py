@@ -224,7 +224,10 @@ def test_scrape(site, artist, title):
     if not check_site_available(site):
         pytest.skip('This site is not available')
     song = Song(artist=artist, title=title)
-    lyrics = site(song)
+    try:
+        lyrics = site(song)
+    except RemoteDisconnected:
+        pytest.skip('Remote disconnected')
     assert lyrics != ''
 
 
@@ -240,5 +243,8 @@ def test_scrape_darklyrics(artist, title, lastfm_key):
     if not check_site_available(extra_check):
         pytest.skip('Darklyrics blocked you again')
     song = Song(artist=artist, title=title)
-    lyrics = darklyrics(song)
+    try:
+        lyrics = darklyrics(song)
+    except RemoteDisconnected:
+        pytest.skip('Remote disconnected')
     assert lyrics != ''
