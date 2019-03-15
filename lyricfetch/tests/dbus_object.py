@@ -4,7 +4,7 @@ This module contains the classes and methods to publish dbus objects.
 import asyncio
 
 from collections import defaultdict
-from multiprocessing import Process
+from threading import Thread
 
 from jeepney.low_level import HeaderFields
 from jeepney.low_level import Message, MessageType
@@ -89,11 +89,13 @@ class DBusObject:
         while True:
             try:
                 self.conn.recv_messages()
-            except Exception:
+            except OSError:
+                break
+            except Exception as e:
                 pass
 
     def listen(self):
-        self.listen_process = Process(target=self._listen)
+        self.listen_process = Thread(target=self._listen)
         self.listen_process.start()
 
     def stop(self):
@@ -103,7 +105,7 @@ class DBusObject:
             except Exception:
                 pass
         if self.listen_process and self.listen_process.is_alive():
-            self.listen_process.terminate()
+            self.conn.sock.close()
 
     def _handle_property_msg(self, msg):
         hdr = msg.header
