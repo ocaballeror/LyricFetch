@@ -91,7 +91,7 @@ class DBusObject:
                 self.conn.recv_messages()
             except OSError:
                 break
-            except Exception as e:
+            except Exception:
                 pass
 
     def listen(self):
