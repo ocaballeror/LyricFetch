@@ -19,9 +19,6 @@ class DBusInterface:
         self.methods = {}
         self.properties = {}
 
-    def __repr__(self):
-        return f'Methods: {self.methods}, Properties: {self.properties}'
-
 
 class DBusObject:
     def __init__(self):
