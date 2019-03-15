@@ -8,7 +8,6 @@ from pathlib import Path
 
 import eyed3
 from jeepney import DBusAddress, Properties
-from jeepney import DBusErrorResponse
 from jeepney import new_method_call
 from jeepney.integrate.blocking import connect_and_authenticate
 
