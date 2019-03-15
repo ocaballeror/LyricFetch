@@ -10,8 +10,6 @@ from pathlib import Path
 
 import pytest
 from py.path import local as pypath
-from conftest import chdir
-from conftest import tag_mp3
 
 import lyricfetch
 import lyricfetch.song
@@ -20,6 +18,9 @@ from lyricfetch import CONFIG
 from lyricfetch.cli import load_from_file
 from lyricfetch.cli import main
 from lyricfetch.cli import parse_argv
+
+from .conftest import chdir
+from .conftest import tag_mp3
 
 
 @pytest.mark.parametrize('arg,config,klass', [

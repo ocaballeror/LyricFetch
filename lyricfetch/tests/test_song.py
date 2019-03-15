@@ -4,8 +4,9 @@ Tests for the `Song` class.
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 
-from conftest import tag_mp3
 from lyricfetch import Song
+
+from .conftest import tag_mp3
 
 
 def test_song_from_filename(mp3file):

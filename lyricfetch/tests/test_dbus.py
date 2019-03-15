@@ -12,10 +12,10 @@ from lyricfetch.song import get_current_spotify
 from lyricfetch.song import get_current_clementine
 from lyricfetch.song import get_current_song
 
-from sample_responses import sample_response_amarok
-from sample_responses import sample_response_cmus
-from sample_responses import sample_response_spotify
-from sample_responses import sample_response_clementine
+from .sample_responses import sample_response_amarok
+from .sample_responses import sample_response_cmus
+from .sample_responses import sample_response_spotify
+from .sample_responses import sample_response_clementine
 
 
 @pytest.mark.parametrize('dbus_service,path,iface,song,response,get_current', [

@@ -11,7 +11,7 @@ import pytest
 import eyed3
 
 from lyricfetch import CONFIG
-from dbus_object import DBusObject
+from .dbus_object import DBusObject
 
 
 @pytest.fixture(scope='session')

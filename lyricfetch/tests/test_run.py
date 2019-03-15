@@ -19,7 +19,8 @@ from lyricfetch.run import LyrThread
 from lyricfetch.run import process_result
 from lyricfetch.run import run_mp
 from lyricfetch.scraping import azlyrics
-from conftest import tag_mp3
+
+from .conftest import tag_mp3
 
 
 def test_getlyrics_from_info():
