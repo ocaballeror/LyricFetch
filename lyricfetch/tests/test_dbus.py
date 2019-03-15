@@ -2,6 +2,7 @@
 Functions to test dbus-related functionality.
 """
 import os
+import time
 
 import pytest
 import lyricfetch
@@ -33,6 +34,7 @@ def test_get_current_metadata(dbus_service, path, iface, song, response,
                              interface=iface)
     dbus_service.listen()
 
+    time.sleep(.1)
     assert get_current() == song
 
 
@@ -56,6 +58,7 @@ def test_get_current_mpris2(dbus_service, song, response, get_current):
     dbus_service.set_property(path, 'Metadata', signature, value, interface)
     dbus_service.listen()
 
+    time.sleep(.1)
     current = get_current()
     assert current == song
 
