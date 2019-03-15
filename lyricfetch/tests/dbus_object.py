@@ -128,7 +128,8 @@ class DBusObject:
                 return new_error(msg, 'KeyError', signature='s',
                                  body=(str(error),))
 
-        return None
+        return new_error(msg, 'ValueError', signature='s',
+                         body=('Invalid property method called: ' + method,))
 
     def _handle_method_call(self, msg):
         hdr = msg.header
@@ -142,8 +143,6 @@ class DBusObject:
         except Exception as error:
             return new_error(msg, str(error), signature='s',
                              body=(str(error), ))
-
-        return None
 
     def handle_msg(self, msg):
         hdr = msg.header
