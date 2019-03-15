@@ -18,6 +18,7 @@ from .sample_responses import sample_response_spotify
 from .sample_responses import sample_response_clementine
 
 
+@pytest.mark.timeout(5)
 @pytest.mark.parametrize('dbus_service,path,iface,song,response,get_current', [
     ('org.kde.amarok', '/Player', '',
      Song('Nightwish', 'Alpenglow', 'Endless Forms Most Beautiful'),
@@ -35,6 +36,7 @@ def test_get_current_metadata(dbus_service, path, iface, song, response,
     assert get_current() == song
 
 
+@pytest.mark.timeout(5)
 @pytest.mark.parametrize('dbus_service,song,response,get_current', [
     ('org.mpris.MediaPlayer2.spotify',
      Song(artist='Gorod', title='Splinters of Life',
