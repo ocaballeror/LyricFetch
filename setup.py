@@ -52,6 +52,7 @@ setup(
             'tox',
             'pytest',
             'pytest-cov',
+            'pytest-timeout',
         ],
     },
 )
