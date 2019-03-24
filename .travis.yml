@@ -1,15 +1,5 @@
 dist: xenial
-
 language: python
-
-python:
-    - 3.7
-    - 3.6
-
-matrix:
-    include:
-        - python: 3.7
-          env: TOXENV=lint
 
 before_install:
     - sudo apt-get update -y
@@ -19,8 +9,16 @@ install:
     - pip install tox tox-travis
     - eval $(dbus-launch --sh-syntax)
 
-script:
-    - tox
+script: tox
+
+jobs:
+    include:
+        - stage: Test
+          python: 3.7
+        - python: 3.6
+        - stage: Lint
+          python: 3.7
+          script: tox -e lint
 
 notifications:
     email: false
