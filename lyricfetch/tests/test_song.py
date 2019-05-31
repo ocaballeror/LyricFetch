@@ -1,6 +1,7 @@
 """
 Tests for the `Song` class.
 """
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
 
@@ -94,3 +95,60 @@ def test_song_fetch_album_name(lastfm_key):
     song = Song(artist='Dropkick Murphys', title='asdfasdfasdf')
     song.fetch_album_name()
     assert song.album == ''
+
+
+def test_song_eq_different_class():
+    """
+    Compare a song object to things that are not Song objects.
+    """
+    class FakeSong:
+        pass
+
+    class DaughterSong(Song):
+        pass
+
+    song = Song('beyond the dawn', 'deathstar')
+    assert song is not None
+
+    fake_song = FakeSong()
+    fake_song.artist = song.artist
+    fake_song.title = song.title
+    assert song != fake_song
+
+    daughter = DaughterSong(song.artist, song.title)
+    assert song == daughter
+
+
+def test_song_eq_filename():
+    """
+    Check that song comparison turns out equal when they point to the same file
+    name.
+    """
+    song = Song("Be'lakor", 'Renmants')
+    othersong = Song('Carnation', 'Hatred Unleashed')
+
+    song.filename = 'song1.mp3'
+    othersong.filename = song.filename
+    assert song == othersong
+    othersong.filename = Path(song.filename)
+    assert song == othersong
+
+    othersong.artist = song.artist
+    othersong.title = song.title
+    othersong.filename = song.filename + '_nope'
+    assert song != othersong
+
+
+def test_song_eq_attributes():
+    """
+    Compare two songs based on their attributes.
+    """
+    song = Song('Ordos', 'House of the dead')
+    othersong = Song('Dvne', 'The Crimson Path')
+    assert song != othersong
+
+    othersong = Song('ordos', 'house OF THE DEAD')
+    assert song == othersong
+
+    othersong.album = 'House of the dead'
+    assert song != othersong

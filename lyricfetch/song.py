@@ -48,6 +48,9 @@ class Song:
             return ''
 
     def __eq__(self, other):
+        if not isinstance(other, Song):
+            return False
+
         if hasattr(self, 'filename') and hasattr(other, 'filename'):
             return Path(self.filename) == Path(other.filename)
         else:
