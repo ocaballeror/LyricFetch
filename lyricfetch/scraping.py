@@ -433,6 +433,8 @@ def lyricsmode(song):
     url = url.format(prefix, artist, title)
     soup = get_url(url)
     content = soup.find(id='lyrics_text')
+    for div in content.find_all('div'):
+        div.decompose()
 
     return content.get_text().strip()
 
