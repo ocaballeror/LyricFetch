@@ -5,7 +5,6 @@ import random
 import shutil
 import sys
 import tempfile
-from tempfile import NamedTemporaryFile
 from pathlib import Path
 
 import pytest
@@ -188,13 +187,14 @@ def test_argv_from_file(monkeypatch, tmpdir, mp3file):
         tag_mp3(filename, artist=artist, title=title)
         songs.append(Song(artist=artist, title=title))
 
-    with NamedTemporaryFile('w') as tmp:
+    filelist = tmpdir / 'filelist'
+    with open(filelist, 'w') as file:
         for filename in mp3_files:
-            tmp.write(str(filename) + '\n')
-        tmp.flush()
+            file.write(str(filename) + '\n')
+        file.flush()
 
-        monkeypatch.setattr(sys, 'argv', [__file__, '--from-file', tmp.name])
-        parsed_songs = parse_argv()
+    monkeypatch.setattr(sys, 'argv', [__file__, '--from-file', str(filelist)])
+    parsed_songs = parse_argv()
 
     assert parsed_songs == set(parsed_songs)
 
@@ -244,8 +244,8 @@ def test_load_from_file_errors(tmpdir):
     tmpdir.remove()
     assert load_from_file(tmpdir) is None
 
-    with NamedTemporaryFile('w') as tmp:
-        assert not load_from_file(tmp.name)
+    tmpdir.ensure(file=True)
+    assert not load_from_file(tmpdir)
 
 
 def test_main_errors(monkeypatch):
