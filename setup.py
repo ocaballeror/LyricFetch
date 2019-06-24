@@ -18,7 +18,7 @@ setup(
         the screen.""",
     url='https://github.com/ocaballeror/Lyricfetch',
     author='Oscar Caballero',
-    author_email='ocaballeror@gmail.com',
+    author_email='ocaballeror@tutanota.com',
     license='GNU General Public License, Version 3',
     classifiers=[
         'Environment :: Console',
