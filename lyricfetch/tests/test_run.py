@@ -85,7 +85,6 @@ def test_lyrthread_run():
     lyr_thread.start()
     result = queue.get()
     assert isinstance(result, dict)
-    assert result['runtime'] > 0
     assert result['lyrics'] == 'Lyrics'
 
     # Now we test a run where some error is raised
@@ -93,7 +92,6 @@ def test_lyrthread_run():
     lyr_thread.start()
     result = queue.get()
     assert isinstance(result, dict)
-    assert result['runtime'] > 0
     assert result['lyrics'] == ''
 
 
