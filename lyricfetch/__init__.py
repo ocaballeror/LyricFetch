@@ -9,7 +9,7 @@ from pathlib import Path
 
 def _load_config():
     here = Path(os.path.realpath(__file__))
-    config_name = here.parent / 'config.json'
+    config_name = here.parent.parent / 'config.json'
     if config_name.is_file():
         with open(config_name) as config_file:
             CONFIG.update(json.load(config_file))
