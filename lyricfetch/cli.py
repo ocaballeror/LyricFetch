@@ -25,12 +25,8 @@ def load_from_file(filename):
         logger.error("Err: File '%s' does not exist", filename)
         return None
 
-    try:
-        with open(filename, 'r') as sourcefile:
-            songs = [line.strip() for line in sourcefile]
-    except IOError as error:
-        logger.exception(error)
-        return None
+    with open(filename) as sourcefile:
+        songs = [line.strip() for line in sourcefile]
     songs = set(Song.from_filename(song) for song in songs)
     return songs.difference({None})  # In case any were in the wrong format
 
