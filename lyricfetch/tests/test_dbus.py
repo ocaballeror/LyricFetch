@@ -2,6 +2,7 @@
 Functions to test dbus-related functionality.
 """
 import os
+import sys
 
 import pytest
 from lyricfetch.song import Song
@@ -14,6 +15,11 @@ from sample_responses import sample_response_amarok
 from sample_responses import sample_response_cmus
 from sample_responses import sample_response_spotify
 from sample_responses import sample_response_clementine
+
+
+pytestmark = pytest.mark.skipif(
+    sys.platform == 'win32', reason='DBus not supported on Windows'
+)
 
 
 @pytest.mark.parametrize('dbus_service', ['org.kde.amarok'], indirect=True)
