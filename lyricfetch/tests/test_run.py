@@ -89,7 +89,9 @@ def test_getlyrics_async(monkeypatch):
         """
         Wrapper around `get_lyrics_async()` in order to run this synchronously.
         """
-        return asyncio.run(get_lyrics_async(*args, **kwargs))
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(get_lyrics_async(*args, **kwargs))
+        return res
 
     # source_2 is faster than source_1, so we should expect it to return lyrics
     # first, and source_1 to not even be in the result that's returned

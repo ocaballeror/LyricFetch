@@ -68,7 +68,7 @@ def exclude_sources(exclude, section=False):
 
 async def scrape(source, song):
     start = time.time()
-    loop = asyncio.get_running_loop()
+    loop = asyncio.get_event_loop()
     try:
         lyrics = await loop.run_in_executor(None, source, song)
     except (HTTPError, HTTPException, URLError, ConnectionError):
@@ -89,7 +89,7 @@ async def get_lyrics_async(song, l_sources):
     lyrics and a runtimes dictionary with all the other scraping attempts.
     """
     runtimes = {}
-    tasks = [asyncio.create_task(scrape(source, song)) for source in l_sources]
+    tasks = [asyncio.ensure_future(scrape(src, song)) for src in l_sources]
 
     for future in asyncio.as_completed(tasks):
         result = await future
@@ -121,7 +121,8 @@ def get_lyrics(song, l_sources=None):
         logger.debug('%s already has embedded lyrics', song)
         return None
 
-    res = asyncio.run(get_lyrics_async(song, l_sources))
+    loop = asyncio.get_event_loop()
+    res = loop.run_until_complete(get_lyrics_async(song, l_sources))
     return res
 
 
