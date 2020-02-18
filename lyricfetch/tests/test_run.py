@@ -1,11 +1,11 @@
 """
 Main tests module.
 """
+import asyncio
 import os
 import shutil
 import tempfile
 import time
-from queue import Queue
 
 import pytest
 
@@ -15,8 +15,7 @@ from lyricfetch import Result
 from lyricfetch import Stats
 from lyricfetch import Song
 from lyricfetch import get_lyrics
-from lyricfetch.run import LyrThread
-from lyricfetch.run import get_lyrics_threaded
+from lyricfetch.run import get_lyrics_async
 from lyricfetch.run import process_result
 from lyricfetch.run import run_mp
 from lyricfetch.scraping import azlyrics
@@ -70,34 +69,9 @@ def test_getlyrics_overwrite(mp3file):
     assert 'forget the taste of my own tongue' in result.song.lyrics.lower()
 
 
-def test_lyrthread_run():
+def test_getlyrics_async(monkeypatch):
     """
-    Test the run method for the LyrThread class, which should find the lyrics
-    for a song and put the result in a Queue.
-    """
-    def raise_error(arg):
-        raise ConnectionError
-
-    # First a normal run where the function actually returns some lyrics
-    queue = Queue()
-    song = Song(artist='Avenged sevenfold', title='Demons')
-    lyr_thread = LyrThread(lambda f: 'Lyrics', song, queue)
-    lyr_thread.start()
-    result = queue.get()
-    assert isinstance(result, dict)
-    assert result['lyrics'] == 'Lyrics'
-
-    # Now we test a run where some error is raised
-    lyr_thread = LyrThread(raise_error, song, queue)
-    lyr_thread.start()
-    result = queue.get()
-    assert isinstance(result, dict)
-    assert result['lyrics'] == ''
-
-
-def test_getlyrics_threaded():
-    """
-    Test the `get_lyrics_threaded()` function, which should launch a pool of
+    Test the `get_lyrics_async()` function, which should launch a pool of
     processes to search for lyrics in all the available sources, and return the
     result from the first one that returns valid lyrics.
     """
@@ -111,10 +85,16 @@ def test_getlyrics_threaded():
     def source_3(_):
         return ''
 
+    def get_async(*args, **kwargs):
+        """
+        Wrapper around `get_lyrics_async()` in order to run this synchronously.
+        """
+        return asyncio.run(get_lyrics_async(*args, **kwargs))
+
     # source_2 is faster than source_1, so we should expect it to return lyrics
     # first, and source_1 to not even be in the result that's returned
     song = Song(artist='Slipknot', title='The virus of life')
-    result = get_lyrics_threaded(song, l_sources=[source_1, source_2])
+    result = get_async(song, l_sources=[source_1, source_2])
     assert song.lyrics == 'Lyrics 2'
     assert result.song.lyrics == 'Lyrics 2'
     assert result.source == source_2
@@ -125,7 +105,7 @@ def test_getlyrics_threaded():
     # any lyrics, so we expect the function to ignore that result and give us
     # the lyrics from source_1
     song = Song(artist='Power trip', title='Ruination')
-    result = get_lyrics_threaded(song, l_sources=[source_1, source_3])
+    result = get_async(song, l_sources=[source_1, source_3])
     assert song.lyrics == 'Lyrics 1'
     assert result.song.lyrics == 'Lyrics 1'
     assert result.source == source_1
@@ -135,7 +115,7 @@ def test_getlyrics_threaded():
     # Lastly, we try only source_3, so we should expect the result to have no
     # lyrics, and its `source` attribute to be None.
     song = Song('Amon amarth', 'Back on northern shores')
-    result = get_lyrics_threaded(song, l_sources=[source_3] * 4)
+    result = get_async(song, l_sources=[source_3] * 4)
     assert song.lyrics == ''
     assert result.song.lyrics == ''
     assert result.source is None
@@ -193,13 +173,12 @@ def test_run_one_song(mp3file, monkeypatch):
     """
     song_lyrics = 'some lyrics here'
 
-    def fake_getlyricsthreaded(songs):
+    def fake_getlyrics(_):
         song.lyrics = song_lyrics
         return Result(song=song, source='whatever', runtimes={})
 
     song = Song.from_filename(mp3file)
-    monkeypatch.setattr(lyricfetch.run, 'get_lyrics_threaded',
-                        fake_getlyricsthreaded)
+    monkeypatch.setattr(lyricfetch.run, 'get_lyrics', fake_getlyrics)
     lyricfetch.run.run(song)
     assert Song.from_filename(mp3file).lyrics == song_lyrics
 

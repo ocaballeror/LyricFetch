@@ -4,8 +4,7 @@ All the functions and classes needed to actually perform the lyrics search.
 import os
 import time
 import math
-import threading
-from queue import Queue
+import asyncio
 
 from urllib.error import URLError, HTTPError
 from http.client import HTTPException
@@ -18,29 +17,6 @@ from . import logger
 from . import sources
 from .scraping import id_source
 from .stats import Stats
-
-
-class LyrThread(threading.Thread):
-    """
-    Threaded object to search for lyrics.
-    """
-    def __init__(self, source, song, queue):
-        super().__init__()
-        self.source = source
-        self.song = song
-        self.queue = queue
-
-    def run(self):
-        start = time.time()
-        try:
-            lyrics = self.source(self.song)
-        except (HTTPError, HTTPException, URLError, ConnectionError):
-            lyrics = ''
-
-        res = dict(runtime=time.time() - start,
-                   lyrics=lyrics,
-                   source=self.source)
-        self.queue.put(res)
 
 
 class Result:
@@ -90,70 +66,39 @@ def exclude_sources(exclude, section=False):
     return newlist
 
 
-def get_lyrics(song, l_sources=None):
+async def scrape(source, song):
+    start = time.time()
+    loop = asyncio.get_running_loop()
+    try:
+        lyrics = await loop.run_in_executor(None, source, song)
+    except (HTTPError, HTTPException, URLError, ConnectionError):
+        lyrics = ''
+
+    res = dict(runtime=time.time() - start,
+               lyrics=lyrics,
+               source=source)
+    return res
+
+
+async def get_lyrics_async(song, l_sources):
     """
-    Searches for lyrics of a single song and returns a Result object with the
-    various stats collected in the process.
+    Asynchronously searches for the lyrics of the specified song using the list
+    of sources provided.
 
-    The optional parameter 'sources' specifies an alternative list of sources.
-    If not present, the main list will be used.
+    Returns a Result object with the song, the first source that returned valid
+    lyrics and a runtimes dictionary with all the other scraping attempts.
     """
-    if l_sources is None:
-        l_sources = sources
-
-    if song.lyrics and not CONFIG['overwrite']:
-        logger.debug('%s already has embedded lyrics', song)
-        return None
-
     runtimes = {}
-    source = None
-    for l_source in l_sources:
-        start = time.time()
-        try:
-            lyrics = l_source(song)
-        except (HTTPError, HTTPException, URLError, ConnectionError):
-            lyrics = ''
+    tasks = [asyncio.create_task(scrape(source, song)) for source in l_sources]
 
-        runtimes[l_source] = time.time() - start
-        if lyrics != '':
-            source = l_source
-            break
-
-    if lyrics != '':
-        logger.info('++ %s: Found lyrics for %s\n', source.__name__, song)
-        song.lyrics = lyrics
-    else:
-        logger.info("Couldn't find lyrics for %s\n", song)
-        source = None
-
-    return Result(song, source, runtimes)
-
-
-def get_lyrics_threaded(song, l_sources=None):
-    """
-    Launches a pool of threads to search for the lyrics of a single song.
-
-    The optional parameter 'sources' specifies an alternative list of sources.
-    If not present, the main list will be used.
-    """
-    if l_sources is None:
-        l_sources = sources
-
-    if song.lyrics and not CONFIG['overwrite']:
-        logger.debug('%s already has embedded lyrics', song)
-        return None
-
-    runtimes = {}
-    queue = Queue()
-    pool = [LyrThread(source, song, queue) for source in l_sources]
-    for thread in pool:
-        thread.start()
-
-    for _ in range(len(pool)):
-        result = queue.get()
+    for future in asyncio.as_completed(tasks):
+        result = await future
         runtimes[result['source']] = result['runtime']
         if result['lyrics']:
             break
+
+    for task in tasks:
+        task.cancel()
 
     if result['lyrics']:
         song.lyrics = result['lyrics']
@@ -162,6 +107,22 @@ def get_lyrics_threaded(song, l_sources=None):
         source = None
 
     return Result(song, source, runtimes)
+
+
+def get_lyrics(song, l_sources=None):
+    """
+    A wrapper around `get_lyrics_threaded` that takes care of setting up the
+    asyncio loop and waiting for the function to return.
+    """
+    if l_sources is None:
+        l_sources = sources
+
+    if song.lyrics and not CONFIG['overwrite']:
+        logger.debug('%s already has embedded lyrics', song)
+        return None
+
+    res = asyncio.run(get_lyrics_async(song, l_sources))
+    return res
 
 
 def process_result(result):
@@ -192,10 +153,10 @@ def process_result(result):
 
 def run(songs):
     """
-    Calls get_lyrics_threaded for a song or list of songs.
+    Calls get_lyrics for a song or list of songs.
     """
     if not hasattr(songs, '__iter__'):
-        result = get_lyrics_threaded(songs)
+        result = get_lyrics(songs)
         process_result(result)
     else:
         start = time.time()
