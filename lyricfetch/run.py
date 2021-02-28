@@ -82,25 +82,30 @@ async def get_song_lyrics(song: Song, l_sources: list = None) -> Result:
         logger.debug('%s already has embedded lyrics', song)
         return None
 
-    source = None
+    elapsed = 0
     start = time.time()
-    tasks = [scraper_wrapper(func, song) for func in l_sources]
-    for task in asyncio.as_completed(tasks):
+    tasks = (scraper_wrapper(func, song) for func in l_sources)
+    futures = [asyncio.ensure_future(task) for task in tasks]
+    for future in asyncio.as_completed(futures):
         try:
-            source, lyrics = await task
+            source, lyrics = await future
         except Exception as e:
             logger.exception(e)
             lyrics = None
 
         if lyrics:
             elapsed = time.time() - start
-            logger.info('++ %s: Found lyrics for %s\n', source.__name__, song)
-            song.lyrics = lyrics
             break
+
+    for future in futures:
+        future.cancel()
+
+    if lyrics:
+        logger.info('++ %s: Found lyrics for %s\n', source.__name__, song)
+        song.lyrics = lyrics
     else:
         logger.info("Couldn't find lyrics for %s\n", song)
         source = None
-        elapsed = 0
 
     return Result(song, source, elapsed)
 
