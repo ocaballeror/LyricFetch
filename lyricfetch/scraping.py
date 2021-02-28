@@ -7,6 +7,7 @@ import re
 import urllib.request as request
 from urllib.error import URLError, HTTPError
 from bs4 import BeautifulSoup
+from operator import attrgetter
 
 from . import CONFIG
 from . import URLESCAPE
@@ -181,8 +182,9 @@ def azlyrics(song):
 
     url = 'https://www.azlyrics.com/lyrics/{}/{}.html'.format(artist, title)
     soup = get_url(url)
-    body = soup.find_all('div', class_='')[-1]
-    return body.get_text().strip()
+    paragraphs = map(attrgetter('text'), soup.find_all('div', class_=''))
+    text = '\n\n'.join(paragraphs).strip()
+    return text
 
 
 def genius(song):
