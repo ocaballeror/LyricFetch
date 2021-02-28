@@ -24,8 +24,6 @@ from lyricfetch.cli import parse_argv
 @pytest.mark.parametrize('arg,config', [
     ('-o', 'overwrite'),
     ('--overwrite', 'overwrite'),
-    ('-s', 'print_stats',),
-    ('--stats', 'print_stats',),
 ])
 def test_argv_flag(monkeypatch, arg, config):
     """

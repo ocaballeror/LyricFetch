@@ -58,4 +58,3 @@ from .run import Result
 from .song import Song
 from .run import exclude_sources, get_lyrics, get_song_lyrics
 from .song import get_current_song
-from .stats import Stats

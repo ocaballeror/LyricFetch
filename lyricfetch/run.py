@@ -10,7 +10,6 @@ from . import CONFIG
 from . import logger
 from . import sources
 from .song import Song
-from .stats import Stats
 
 
 @dataclass
@@ -71,7 +70,7 @@ async def scraper_wrapper(scraper, *args, **kwargs):
 async def get_song_lyrics(song: Song, l_sources: list = None) -> Result:
     """
     Searches for lyrics of a single song and returns a Result object with the
-    various stats collected in the process.
+    song and the site where its lyrics were found (if any).
 
     The optional parameter 'sources' specifies an alternative list of sources.
     If not present, the main list will be used.

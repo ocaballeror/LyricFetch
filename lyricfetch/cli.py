@@ -42,8 +42,6 @@ def parse_argv():
                                      ' files and embed them as metadata')
     parser.add_argument('-o', '--overwrite', help='Overwrite lyrics of songs'
                         ' that already have them', action='store_true')
-    parser.add_argument('-s', '--stats', help='Print a series of statistics at'
-                        ' the end of the execution', action='store_true')
     parser.add_argument('-v', '--verbose', help='Set verbosity level (pass it'
                         ' up to three times)', action='count')
     parser.add_argument('-d', '--debug', help='Enable debug output',
@@ -59,7 +57,6 @@ def parse_argv():
     args = parser.parse_args()
 
     CONFIG['overwrite'] = args.overwrite
-    CONFIG['print_stats'] = args.stats
 
     if args.verbose is None or args.verbose == 0:
         logger.setLevel(logging.CRITICAL)
