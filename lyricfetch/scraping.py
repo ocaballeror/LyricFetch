@@ -95,7 +95,7 @@ def metrolyrics(song):
     soup = get_url(url)
     body = soup.find(id='lyrics-body-text')
     if body is None:
-        return ''
+        return None
 
     text = ''
     verses = body.find_all('p')
@@ -118,7 +118,7 @@ def darklyrics(song):
         if not hasattr(song, 'album') or not song.album:
             # If we don't have the name of the album, there's nothing we can do
             # on darklyrics
-            return ''
+            return None
 
     artist = song.artist.lower()
     artist = normalize(artist, URLESCAPES, '')
@@ -185,7 +185,7 @@ def genius(song):
             if text:
                 return text
 
-    return ''
+    return None
 
 
 def metalarchives(song):
@@ -200,12 +200,12 @@ def metalarchives(song):
     url += f'/?songTitle={title}&bandName={artist}&ExactBandMatch=1'
     soup = get_url(url, parser='json')
     if not soup:
-        return ''
+        return None
 
     song_id_re = re.compile(r'lyricsLink_([0-9]*)')
     ids = set(re.search(song_id_re, a) for sub in soup['aaData'] for a in sub)
     if not ids:
-        return ''
+        return None
 
     if None in ids:
         ids.remove(None)
@@ -217,7 +217,7 @@ def metalarchives(song):
         if not re.search('lyrics not available', lyrics):
             return lyrics
 
-    return ''
+    return None
 
 
 def lyricswikia(song):
@@ -235,7 +235,7 @@ def lyricswikia(song):
     text = ''
     content = soup.find('div', class_='lyricbox')
     if not content:
-        return ''
+        return None
 
     for unformat in content.findChildren(['i', 'b']):
         unformat.unwrap()
@@ -313,11 +313,11 @@ def songlyrics(song):
     soup = get_url(url)
     text = soup.find(id='songLyricsDiv')
     if not text:
-        return ''
+        return None
 
     text = text.getText().strip()
     if not text or text.lower().startswith('we do not have the lyrics for'):
-        return ''
+        return None
 
     return text
 
@@ -342,7 +342,7 @@ def lyricscom(song):
             artist_page = link.attrs['href']
             break
     else:
-        return ''
+        return None
 
     url = 'https://www.lyrics.com/' + artist_page
     soup = get_url(url)
@@ -355,13 +355,13 @@ def lyricscom(song):
             song_page = link.attrs['href']
             break
     else:
-        return ''
+        return None
 
     url = 'https://www.lyrics.com/' + song_page
     soup = get_url(url)
     body = soup.find(id='lyric-body-text')
     if not body:
-        return ''
+        return None
 
     return body.get_text().strip()
 
@@ -387,7 +387,7 @@ def vagalume(song):
     soup = get_url(url)
     body = soup.select('div#lyrics')
     if body == []:
-        return ''
+        return None
 
     content = body[0]
     for br in content.find_all('br'):
@@ -449,22 +449,22 @@ def letras(song):
     url = 'https://www.letras.com/{}/{}/'.format(artist, title)
     soup = get_url(url)
     if not soup:
-        return ''
+        return None
 
     found_title = soup.select_one('div.cnt-head_title h1')
     if not found_title:
         # The site didn't find lyrics and took us to the homepage
-        return ''
+        return None
 
     found_title = found_title.get_text()
     found_title = re.sub(r'[\W_]+', '', found_title.lower())
     if found_title != re.sub(r'[\W_]+', '', song.title.lower()):
         # The site took us to the wrong song page
-        return ''
+        return None
 
     content = soup.find('article')
     if not content:
-        return ''
+        return None
 
     text = ''
     for br in content.find_all('br'):
@@ -497,7 +497,7 @@ def id_source(source, full=False):
     Returns the name of a website-scrapping function.
     """
     if source not in source_ids:
-        return ''
+        return None
 
     if full:
         return source_ids[source][1]

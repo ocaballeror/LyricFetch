@@ -111,10 +111,10 @@ def get_lyrics(song, l_sources=None):
         try:
             lyrics = l_source(song)
         except (HTTPError, HTTPException, URLError, ConnectionError):
-            lyrics = ''
+            lyrics = None
 
         runtimes[l_source] = time.time() - start
-        if lyrics != '':
+        if lyrics:
             source = l_source
             break
 

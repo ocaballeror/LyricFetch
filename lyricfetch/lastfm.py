@@ -10,7 +10,7 @@ def get_lastfm(method, lastfm_key='', **kwargs):
     if not lastfm_key:
         if 'lastfm_key' not in CONFIG or not CONFIG['lastfm_key']:
             logger.warning('No lastfm key configured')
-            return ''
+            return None
         else:
             lastfm_key = CONFIG['lastfm_key']
 
@@ -23,6 +23,6 @@ def get_lastfm(method, lastfm_key='', **kwargs):
     if 'error' in response:
         logger.error('Error number %d in lastfm query: %s',
                      response['error'], response['message'])
-        return ''
+        return None
 
     return response

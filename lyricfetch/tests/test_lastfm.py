@@ -41,4 +41,4 @@ def test_get_lastfm_wrong_arguments(lastfm_key):
     """
     empty = get_lastfm('track.getInfo', lastfm_key=lastfm_key,
                        asdfasdf='asdfasdf')
-    assert empty == ''
+    assert empty is None
