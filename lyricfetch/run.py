@@ -6,6 +6,7 @@ import time
 import math
 import threading
 from queue import Queue
+from dataclasses import dataclass, field
 
 from urllib.error import URLError, HTTPError
 from http.client import HTTPException
@@ -16,6 +17,7 @@ import eyed3
 from . import CONFIG
 from . import logger
 from . import sources
+from .song import Song
 from .scraping import id_source
 from .stats import Stats
 
@@ -43,23 +45,20 @@ class LyrThread(threading.Thread):
         self.queue.put(res)
 
 
+@dataclass
 class Result:
     """
     Contains the results generated from run, so they can be returned as a
     single variable.
     """
-    def __init__(self, song, source=None, runtimes=None):
-        self.song = song
+    song: Song
 
-        # The source where the lyrics were found (or None if they weren't)
-        self.source = source
+    # The source where the lyrics were found (or None if they weren't)
+    source: str = None
 
-        # A dictionary that maps every source to the time taken to scrape
-        # the website. Keys corresponding to unused sources will be missing
-        if runtimes is None:
-            self.runtimes = {}
-        else:
-            self.runtimes = runtimes
+    # A dictionary that maps every source to the time taken to scrape
+    # the website. Keys corresponding to unused sources will be missing
+    runtimes: dict = field(default_factory=dict)
 
 
 def exclude_sources(exclude, section=False):

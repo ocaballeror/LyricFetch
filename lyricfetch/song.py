@@ -4,6 +4,7 @@ to get the current playing song.
 """
 import os
 import subprocess
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import eyed3
@@ -16,6 +17,7 @@ from . import logger
 from .lastfm import get_lastfm
 
 
+@dataclass
 class Song:
     """
     Representation of a song object.
@@ -27,17 +29,10 @@ class Song:
     to create a song object. Either from_filename, from_info or from_string
     depending on the use case.
     """
-    def __init__(self, artist='', title='', album='', lyrics=''):
-        self.artist = artist
-        self.title = title
-        self.album = album
-        self.lyrics = lyrics
-
-    def __repr__(self):
-        items = self.__dict__.copy()
-        del items['lyrics']
-        values = ('='.join((k, v)) for k, v in items.items() if v)
-        return 'Song({})'.format(', '.join(values))
+    artist: str
+    title: str
+    album: str = ''
+    lyrics: str = field(repr=False, default='')
 
     def __str__(self):
         if hasattr(self, 'filename'):
