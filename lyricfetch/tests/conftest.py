@@ -45,7 +45,7 @@ def mp3file(_mp3file):
         os.unlink(file_copy)
 
 
-@pytest.fixture()
+@pytest.fixture
 def lastfm_key():
     key = CONFIG['lastfm_key']
     if not key:

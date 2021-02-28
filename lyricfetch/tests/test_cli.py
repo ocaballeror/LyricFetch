@@ -1,6 +1,6 @@
 from lyricfetch import Result
 from lyricfetch import Song
-from lyricfetch.run import process_result
+from lyricfetch.cli import process_result
 from conftest import tag_mp3
 
 def test_process_result(mp3file):

@@ -1,6 +1,7 @@
 """
 Tests for the `Song` class.
 """
+import asyncio
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from tempfile import TemporaryDirectory
@@ -87,13 +88,16 @@ def test_song_fetch_album_name(lastfm_key):
     """
     Check that a song can retrieve the album name if it's not given.
     """
+    def fetch_album(song):
+        asyncio.run(song.fetch_album_name())
+
     song = Song(artist='Barren earth', title='The living fortress')
     assert song.album == ''
-    song.fetch_album_name()
+    fetch_album(song)
     assert song.album.lower() == 'a complex of cages'
 
     song = Song(artist='Dropkick Murphys', title='asdfasdfasdf')
-    song.fetch_album_name()
+    fetch_album(song)
     assert song.album == ''
 
 

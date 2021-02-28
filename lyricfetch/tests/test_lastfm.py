@@ -1,8 +1,13 @@
-from urllib.error import HTTPError
+import asyncio
 
 import pytest
+from httpx import HTTPStatusError
 
-from lyricfetch.lastfm import get_lastfm
+from lyricfetch.lastfm import get_lastfm as _get_lastfm
+
+
+def get_lastfm(*args, **kwargs):
+    return asyncio.run(_get_lastfm(*args, **kwargs))
 
 
 def test_get_lastfm(lastfm_key):
@@ -22,7 +27,7 @@ def test_get_lastfm_wrong_key():
     """
     `get_lastfm` should fail if they key is invalid.
     """
-    with pytest.raises(HTTPError):
+    with pytest.raises(HTTPStatusError):
         get_lastfm('track.getInfo', lastfm_key='asdfasdf')
 
 
@@ -30,7 +35,7 @@ def test_get_lastfm_wrong_method(lastfm_key):
     """
     `get_lastfm` should fail if the method requested is invalid.
     """
-    with pytest.raises(HTTPError):
+    with pytest.raises(HTTPStatusError):
         get_lastfm('asdfasdf', lastfm_key=lastfm_key)
 
 

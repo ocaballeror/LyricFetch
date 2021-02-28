@@ -1,11 +1,11 @@
 """
 Tests for the specific scraping functions.
 """
-from urllib.error import URLError
-from urllib.error import HTTPError
+import asyncio
 from http.client import RemoteDisconnected
 
 import pytest
+from httpx import HTTPStatusError
 
 from lyricfetch import Song
 from lyricfetch import exclude_sources
@@ -14,7 +14,7 @@ from lyricfetch.scraping import azlyrics, metrolyrics, lyricswikia
 from lyricfetch.scraping import darklyrics, metalarchives, genius
 from lyricfetch.scraping import musixmatch, songlyrics, vagalume
 from lyricfetch.scraping import letras, lyricsmode, lyricscom
-from lyricfetch.scraping import get_url
+from lyricfetch.scraping import get_url as _get_url
 from lyricfetch.scraping import id_source
 from lyricfetch.scraping import normalize
 
@@ -33,13 +33,17 @@ def check_site_available(site, secure=False):
 
     try:
         get_url(url, parser='raw')
-    except HTTPError:
+    except HTTPStatusError:
         return False
-    except (URLError, RemoteDisconnected):
+    except RemoteDisconnected:
         if secure:
             return False
         return check_site_available(site, secure=True)
     return True
+
+
+def get_url(*args, **kwargs):
+    return asyncio.run(_get_url(*args, **kwargs))
 
 
 def test_get_url():
