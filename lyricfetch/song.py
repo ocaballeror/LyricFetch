@@ -91,7 +91,7 @@ class Song:
         tags = audiofile.tag
         album = tags.album
         title = tags.title
-        lyrics = ''.join([l.text for l in tags.lyrics])
+        lyrics = ''.join([lyr.text for lyr in tags.lyrics])
         artist = tags.album_artist
         if not artist:
             artist = tags.artist

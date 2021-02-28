@@ -3,6 +3,7 @@ from lyricfetch import Song
 from lyricfetch.cli import process_result
 from conftest import tag_mp3
 
+
 def test_process_result(mp3file):
     """
     Check that the `process_result()` function can write the lyrics to the

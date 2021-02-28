@@ -1,7 +1,6 @@
 """
 Module to test the different CLI arguments that can be passed.
 """
-import random
 import shutil
 import sys
 import tempfile
