@@ -13,7 +13,7 @@ from jeepney import new_method_call
 from jeepney.integrate.blocking import connect_and_authenticate
 
 from . import logger
-from .scraping import get_lastfm
+from .lastfm import get_lastfm
 
 
 class Song:

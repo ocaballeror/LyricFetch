@@ -15,7 +15,6 @@ from lyricfetch.scraping import darklyrics, metalarchives, genius
 from lyricfetch.scraping import musixmatch, songlyrics, vagalume
 from lyricfetch.scraping import letras, lyricsmode, lyricscom
 from lyricfetch.scraping import get_url
-from lyricfetch.scraping import get_lastfm
 from lyricfetch.scraping import id_source
 from lyricfetch.scraping import normalize
 
@@ -88,45 +87,6 @@ def test_get_url_tlsv1():
     assert hasattr(soup, 'head')
     assert hasattr(soup, 'body')
     assert soup.get_text() != ''
-
-
-def test_get_lastfm(lastfm_key):
-    """
-    The `get_lastfm` function should return a json object with the response
-    from the method requested.
-    """
-    track = get_lastfm('track.getInfo', lastfm_key=lastfm_key,
-                       artist='Metallica', track='Master of puppets')
-    assert 'track' in track
-    assert 'name' in track['track']
-    assert 'artist' in track['track']
-    assert 'album' in track['track']
-
-
-def test_get_lastfm_wrong_key():
-    """
-    `get_lastfm` should fail if they key is invalid.
-    """
-    with pytest.raises(HTTPError):
-        get_lastfm('track.getInfo', lastfm_key='asdfasdf')
-
-
-def test_get_lastfm_wrong_method(lastfm_key):
-    """
-    `get_lastfm` should fail if the method requested is invalid.
-    """
-    with pytest.raises(HTTPError):
-        get_lastfm('asdfasdf', lastfm_key=lastfm_key)
-
-
-def test_get_lastfm_wrong_arguments(lastfm_key):
-    """
-    `get_lastfm` should fail and return an empty string if they arguments to
-    the method are invalid.
-    """
-    empty = get_lastfm('track.getInfo', lastfm_key=lastfm_key,
-                       asdfasdf='asdfasdf')
-    assert empty == ''
 
 
 def test_normalize():
