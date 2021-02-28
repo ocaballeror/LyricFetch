@@ -1,6 +1,7 @@
 """
 Main module for CLI interaction.
 """
+import asyncio
 import sys
 import os
 import logging
@@ -9,9 +10,10 @@ import glob
 
 from . import logger
 from . import CONFIG
+from .scraping import id_source
 from .song import Song
 from .song import get_current_song
-from .run import run
+from .run import get_lyrics
 
 
 def load_from_file(filename):
@@ -38,8 +40,6 @@ def parse_argv():
     """
     parser = argparse.ArgumentParser(description='Find lyrics for a set of mp3'
                                      ' files and embed them as metadata')
-    parser.add_argument('-j', '--jobs', help='Number of parallel processes',
-                        type=int, metavar='N', default=1)
     parser.add_argument('-o', '--overwrite', help='Overwrite lyrics of songs'
                         ' that already have them', action='store_true')
     parser.add_argument('-s', '--stats', help='Print a series of statistics at'
@@ -68,12 +68,6 @@ def parse_argv():
     else:
         logger.setLevel(logging.DEBUG)
 
-    if args.jobs <= 0:
-        msg = 'Argument -j/--jobs should have a value greater than zero'
-        parser.error(msg)
-    else:
-        CONFIG['jobcount'] = args.jobs
-
     songs = set()
     if args.from_file:
         songs = load_from_file(args.from_file)
@@ -95,6 +89,35 @@ def parse_argv():
     return songs.difference({None})
 
 
+def process_result(result):
+    """
+    Process a result object by:
+        1. Saving the lyrics to the corresponding file(if applicable).
+        2. Printing the lyrics or the corresponding error/success message.
+        3. Returning a boolean indicating if the lyrics were found or not.
+    """
+    found = result.source is not None
+    if found:
+        if hasattr(result.song, 'filename'):
+            result.song.write_lyrics()
+            print(f'{id_source(result.source)} Lyrics added for {result.song}')
+        else:
+            print(f"""FROM {id_source(result.source, full=True)}
+
+{result.song.lyrics}
+-----------------------------------------------------------------------------\
+""")
+    else:
+        print(f'Lyrics for {result.song} not found')
+
+    return found
+
+
+async def run(songs):
+    async for res in get_lyrics(songs):
+        process_result(res)
+
+
 def main():
     """
     Main function.
@@ -112,7 +135,7 @@ def main():
 
     logger.debug('Running with %s', songs)
     try:
-        run(songs)
+        asyncio.run(run(songs))
     except KeyboardInterrupt:
         print('Interrupted')
         return 1

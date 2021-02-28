@@ -3,7 +3,7 @@ from . import logger
 from .scraping import get_url
 
 
-def get_lastfm(method, lastfm_key='', **kwargs):
+async def get_lastfm(method, lastfm_key='', **kwargs):
     """
     Request the specified method from the lastfm api.
     """
@@ -19,7 +19,7 @@ def get_lastfm(method, lastfm_key='', **kwargs):
     for key in kwargs:
         url += '&{}={}'.format(key, kwargs[key])
 
-    response = get_url(url, parser='json')
+    response = await get_url(url, parser='json')
     if 'error' in response:
         logger.error('Error number %d in lastfm query: %s',
                      response['error'], response['message'])

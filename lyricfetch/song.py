@@ -126,12 +126,12 @@ class Song:
         song = cls(artist, title)
         return song
 
-    def fetch_album_name(self):
+    async def fetch_album_name(self):
         """
         Get the name of the album from lastfm.
         """
-        response = get_lastfm('track.getInfo', artist=self.artist,
-                              track=self.title)
+        response = await get_lastfm('track.getInfo', artist=self.artist,
+                                    track=self.title)
         if response:
             try:
                 self.album = response['track']['album']['title']
@@ -140,6 +140,14 @@ class Song:
                 logger.warning('Could not fetch album name for %s', self)
         else:
             logger.warning('Could not fetch album name for %s', self)
+
+    def write_lyrics(self):
+        """
+        Write lyrics back to the MP3 file.
+        """
+        audiofile = eyed3.load(self.filename)
+        audiofile.tag.lyrics.set(self.lyrics)
+        audiofile.tag.save()
 
 
 def get_info_mpris2(name):

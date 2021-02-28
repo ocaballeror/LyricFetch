@@ -21,24 +21,6 @@ from lyricfetch.cli import main
 from lyricfetch.cli import parse_argv
 
 
-@pytest.mark.parametrize('arg,config,klass', [
-    ('-j', 'jobcount', int),
-    ('--jobs', 'jobcount', int),
-])
-def test_argv_param(monkeypatch, arg, config, klass):
-    """
-    Test the arguments that accept a parameter and store it CONFIG.
-    """
-    new_argv = ['python', __file__, arg]
-    if klass is int:
-        param = random.randint(1, 10)
-    new_argv.append(str(param))
-
-    monkeypatch.setattr(sys, 'argv', new_argv)
-    parse_argv()
-    assert CONFIG[config] == param
-
-
 @pytest.mark.parametrize('arg,config', [
     ('-o', 'overwrite'),
     ('--overwrite', 'overwrite'),
@@ -54,21 +36,6 @@ def test_argv_flag(monkeypatch, arg, config):
     monkeypatch.setattr(sys, 'argv', new_argv)
     parse_argv()
     assert CONFIG[config]
-
-
-@pytest.mark.parametrize('num', [-1, 0])
-def test_argv_invalid_jobs(monkeypatch, num):
-    """
-    Check that `parse_argv()` raises some kind of error when an invalid number
-    of jobs is passed.
-    """
-    new_argv = ['python', __file__, '-j', str(num)]
-
-    current_value = CONFIG['jobcount']
-    monkeypatch.setattr(sys, 'argv', new_argv)
-    with pytest.raises(SystemExit):
-        parse_argv()
-    assert CONFIG['jobcount'] == current_value
 
 
 def test_argv_recursive(monkeypatch, mp3file):
