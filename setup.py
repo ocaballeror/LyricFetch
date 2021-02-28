@@ -41,7 +41,7 @@ setup(
         'urllib3>=1.22',
         'beautifulsoup4>=4.5.3',
         'eyeD3>=0.8.2',
-        'jeepney>=0.4',
+        'jeepney>=0.6',
         'httpx>=0.17',
     ],
     extras_require={
