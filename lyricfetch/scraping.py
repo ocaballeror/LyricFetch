@@ -355,19 +355,35 @@ def lyricscom(song):
     """
     artist = song.artist.lower()
     artist = normalize(artist, ' ', '+')
-    title = song.title
 
     url = 'https://www.lyrics.com/artist/{}'.format(artist)
     soup = get_url(url)
-    location = ''
-    for a in soup.select('tr a'):
-        if a.string.lower() == title.lower():
-            location = a['href']
+    artist_page = ''
+    for link in soup.select('tr a.name'):
+        title = link.attrs.get('title')
+        if not title:
+            continue
+
+        if normalize(title).lower() == normalize(song.artist).lower():
+            artist_page = link.attrs['href']
             break
-    if location == '':
+    else:
         return ''
 
-    url = 'https://www.lyrics.com' + location
+    url = 'https://www.lyrics.com/' + artist_page
+    soup = get_url(url)
+    songs = soup.select('div.tdata-ext td a')
+    for link in songs:
+        if not link.string:
+            continue
+
+        if normalize(link.string.lower()) == normalize(song.title.lower()):
+            song_page = link.attrs['href']
+            break
+    else:
+        return ''
+
+    url = 'https://www.lyrics.com/' + song_page
     soup = get_url(url)
     body = soup.find(id='lyric-body-text')
     if not body:
