@@ -167,11 +167,27 @@ async def genius(song):
 
     url = 'https://www.genius.com/{}-{}-lyrics'.format(artist, title)
     soup = await get_url(url)
-    for content in soup.find_all('p'):
-        if content:
-            text = content.get_text().strip()
-            if text:
-                return text
+
+    # old style page
+    paragraphs = soup.find_all('p')
+    for p in paragraphs:
+        if not p:
+            continue
+
+        text = p.get_text().strip()
+        if text:
+            return text
+
+    # new style page
+    else:
+        for div in soup.find_all('div'):
+            classes = div.attrs.get('class', [])
+
+            if any(klass.startswith('Lyrics__Container') for klass in classes):
+                for br in div.find_all('br'):
+                    br.replace_with('\n')
+
+                return ''.join(div.contents)
 
     return None
 
