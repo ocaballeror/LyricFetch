@@ -43,6 +43,7 @@ setup(
         'beautifulsoup4>=4.5.3',
         'eyeD3>=0.8.2',
         'jeepney>=0.7',
+        'jeepney-objects>=0.3',
         'httpx>=0.17',
     ],
     extras_require={

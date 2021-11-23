@@ -9,9 +9,9 @@ from contextlib import contextmanager
 
 import pytest
 import eyed3
+from jeepney_objects import DBusObject
 
 from lyricfetch import CONFIG
-from dbus_object import DBusObject
 
 
 @pytest.fixture(scope='session')
