@@ -41,7 +41,6 @@ logging.getLogger('eyed3.mp3.headers').setLevel(logging.CRITICAL)
 from . import scraping
 sources = [
     scraping.azlyrics,
-    scraping.lyricswikia,
     scraping.darklyrics,
     scraping.metalarchives,
     scraping.genius,

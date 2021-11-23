@@ -81,7 +81,6 @@ For an example of a program using LyricFetch as a library, see
 ## Supported sources
 Right now, LyricFetch support scraping the following websites:
 
-* lyrics.wikia.com
 * azlyrics.com
 * lyrics.com
 * darklyrics.com

@@ -196,42 +196,6 @@ async def metalarchives(song):
     return None
 
 
-async def lyricswikia(song):
-    """
-    Returns the lyrics found in lyrics.wikia.com for the specified mp3 file or
-    an empty string if not found.
-    """
-    artist = song.artist.title()
-    artist = normalize(artist, ' ', '_')
-    title = song.title
-    title = normalize(title, ' ', '_')
-
-    url = 'https://lyrics.wikia.com/wiki/{}:{}'.format(artist, title)
-    soup = await get_url(url)
-    text = ''
-    content = soup.find('div', class_='lyricbox')
-    if not content:
-        return None
-
-    for unformat in content.findChildren(['i', 'b']):
-        unformat.unwrap()
-    for remove in content.findChildren(['div', 'span']):
-        remove.decompose()
-
-    nlcount = 0
-    for line in content.children:
-        if line is None or line == '<br/>' or line == '\n':
-            if nlcount == 2:
-                text += '\n\n'
-                nlcount = 0
-            else:
-                nlcount += 1
-        else:
-            nlcount = 0
-            text += str(line).replace('<br/>', '\n')
-    return text.strip()
-
-
 async def musixmatch(song):
     """
     Returns the lyrics found in musixmatch for the specified mp3 file or an
@@ -454,7 +418,6 @@ async def letras(song):
 
 source_ids = {
     azlyrics: ('AZL', 'AZLyrics.com'),
-    lyricswikia: ('WIK', 'Lyrics.wikia.com'),
     darklyrics: ('DAR', 'Darklyrics.com'),
     metalarchives: ('ARC', 'Metal-archives.com'),
     genius: ('GEN', 'Genius.com'),

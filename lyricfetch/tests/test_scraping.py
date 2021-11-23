@@ -10,7 +10,7 @@ from httpx import HTTPStatusError
 from lyricfetch import Song
 from lyricfetch import exclude_sources
 from lyricfetch import sources
-from lyricfetch.scraping import azlyrics, lyricswikia
+from lyricfetch.scraping import azlyrics
 from lyricfetch.scraping import darklyrics, metalarchives, genius
 from lyricfetch.scraping import musixmatch, songlyrics, vagalume
 from lyricfetch.scraping import letras, lyricsmode, lyricscom
@@ -173,7 +173,6 @@ def test_exclude_sources_section_callable():
     (letras, 'havok', 'afterburner'),
     (lyricscom, 'dark tranquillity', 'atom heart 243.5'),
     (lyricsmode, 'motorhead', 'like a nightmare'),
-    (lyricswikia, 'in flames', 'everything counts'),
     (metalarchives, 'black sabbath', 'master of insanity'),
     (musixmatch, 'pantera', 'psycho holiday'),
     (songlyrics, 'sylosis', 'stained humanity'),
