@@ -201,7 +201,7 @@ async def test_scrape_darklyrics(artist, title, lastfm_key):
     Test scraping darklyrics, whose banning policy requires some special checks
     to be performed.
     """
-    extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
+    extra_check = 'http://www.darklyrics.com/lyrics/jinjer/micro.html'
     if not await check_site_available(extra_check):
         pytest.skip('Darklyrics blocked you again')
     song = Song(artist=artist, title=title)
