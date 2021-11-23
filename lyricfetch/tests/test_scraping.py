@@ -14,12 +14,12 @@ from lyricfetch.scraping import azlyrics
 from lyricfetch.scraping import darklyrics, metalarchives, genius
 from lyricfetch.scraping import musixmatch, songlyrics, vagalume
 from lyricfetch.scraping import letras, lyricsmode, lyricscom
-from lyricfetch.scraping import get_url as _get_url
+from lyricfetch.scraping import get_url
 from lyricfetch.scraping import id_source
 from lyricfetch.scraping import normalize
 
 
-def check_site_available(site, secure=False):
+async def check_site_available(site, secure=False):
     """
     Helper function to check if a specific website is available.
     """
@@ -32,36 +32,33 @@ def check_site_available(site, secure=False):
         url = f'{prefix}://{url}'
 
     try:
-        get_url(url, parser='raw')
+        await get_url(url, parser='raw')
     except HTTPStatusError:
         return False
     except RemoteDisconnected:
         if secure:
             return False
-        return check_site_available(site, secure=True)
+        return await check_site_available(site, secure=True)
     return True
 
 
-def get_url(*args, **kwargs):
-    return asyncio.run(_get_url(*args, **kwargs))
-
-
-def test_get_url():
+@pytest.mark.asyncio
+async def test_get_url():
     """
     Check that `get_url` returns the contents of a url using different parsers.
     """
     test_site = 'http://example.com'
-    if not check_site_available(test_site):
+    if not await check_site_available(test_site):
         pytest.skip('Test site not available')
 
-    soup = get_url(test_site, parser='html')
+    soup = await get_url(test_site, parser='html')
     assert soup
     assert soup.get_text().strip() != ''
     assert hasattr(soup, 'html')
     assert hasattr(soup, 'head')
     assert hasattr(soup, 'body')
 
-    raw = get_url('http://example.com', parser='raw')
+    raw = await get_url('http://example.com', parser='raw')
     assert '<html>' in raw
     assert '<head>' in raw
     assert '<body>' in raw
@@ -70,22 +67,23 @@ def test_get_url():
     assert '</html>' in raw
 
     url = 'http://jsonapiplayground.reyesoft.com/v2/authors'
-    json_response = get_url(url, parser='json')
+    json_response = await get_url(url, parser='json')
     assert json_response
     assert isinstance(json_response, dict)
     assert 'data' in json_response
 
 
-def test_get_url_tlsv1():
+@pytest.mark.asyncio
+async def test_get_url_tlsv1():
     """
     Check that `get_url` can get data from a website using an older encryption
     protocol (TLSv1).
     """
     test_site = 'http://www.metal-archives.com'
-    if not check_site_available(test_site):
+    if not await check_site_available(test_site):
         pytest.skip('Test site not available')
 
-    soup = get_url(test_site, parser='html')
+    soup = await get_url(test_site, parser='html')
     assert soup
     assert hasattr(soup, 'html')
     assert hasattr(soup, 'head')
@@ -184,7 +182,7 @@ async def test_scrape(site, artist, title):
     Test all the scraping methods, each of which should return a set of lyrics
     for a known-to-be-found song.
     """
-    if not check_site_available(site):
+    if not await check_site_available(site):
         pytest.skip('This site is not available')
     song = Song(artist=artist, title=title)
     try:
@@ -204,7 +202,7 @@ async def test_scrape_darklyrics(artist, title, lastfm_key):
     to be performed.
     """
     extra_check = 'www.darklyrics.com/j/judaspriest/painkiller.html'
-    if not check_site_available(extra_check):
+    if not await check_site_available(extra_check):
         pytest.skip('Darklyrics blocked you again')
     song = Song(artist=artist, title=title)
     try:
