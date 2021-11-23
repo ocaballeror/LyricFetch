@@ -7,12 +7,18 @@ from jeepney.bus_messages import DBus
 from jeepney.wrappers import new_method_call
 from jeepney.wrappers import Properties
 from jeepney.wrappers import DBusErrorResponse
-from jeepney.integrate.blocking import connect_and_authenticate
+from jeepney.io.blocking import open_dbus_connection
 
 
 pytestmark = pytest.mark.skipif(
     sys.platform == 'win32', reason='DBus not supported on Windows'
 )
+
+
+def connect_and_authenticate(bus='SESSION'):
+    conn = open_dbus_connection(bus)
+    conn._unwrap_reply = True  # backwards compatible behavior
+    return conn
 
 
 @pytest.mark.parametrize('dbus_service', ['com.example.object'], indirect=True)

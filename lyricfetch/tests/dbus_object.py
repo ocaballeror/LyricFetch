@@ -8,7 +8,7 @@ from multiprocessing import Process
 
 from jeepney.low_level import HeaderFields
 from jeepney.low_level import Message, MessageType
-from jeepney.integrate.blocking import connect_and_authenticate
+from jeepney.io.blocking import open_dbus_connection
 from jeepney.bus_messages import DBus
 from jeepney.wrappers import new_method_return
 from jeepney.wrappers import new_error
@@ -27,7 +27,8 @@ class DBusObject:
     def __init__(self):
         self.name = None
         self.interfaces = defaultdict(DBusInterface)
-        self.conn = connect_and_authenticate(bus='SESSION')
+        self.conn = open_dbus_connection(bus='SESSION')
+        self.conn._unwrap_reply = True  # backwards compatible behavior
         self.conn.router.on_unhandled = self.handle_msg
         self.listen_process = None
 

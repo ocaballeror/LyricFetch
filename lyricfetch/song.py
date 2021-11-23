@@ -11,7 +11,7 @@ import eyed3
 from jeepney import DBusAddress, Properties
 from jeepney import DBusErrorResponse
 from jeepney import new_method_call
-from jeepney.integrate.blocking import connect_and_authenticate
+from jeepney.io.blocking import open_dbus_connection
 
 from . import logger
 from .lastfm import get_lastfm
@@ -161,7 +161,8 @@ def get_info_mpris2(name):
     interface = 'org.mpris.MediaPlayer2.Player'
     address = DBusAddress(path, bus_name=bus_name, interface=interface)
     msg = Properties(address).get('Metadata')
-    connection = connect_and_authenticate()
+    connection = open_dbus_connection()
+    connection._unwrap_reply = True  # backwards compatible behavior
     response = connection.send_and_get_reply(msg)
     metadata = dict(response[0][1])
     keys = ['album', 'title', 'artist', 'albumartist']
@@ -186,7 +187,8 @@ def get_info_mpris2(name):
 
 def dbus_get_metadata(path, bus_name, interface=None):
     address = DBusAddress(path, bus_name, interface)
-    conn = connect_and_authenticate()
+    conn = open_dbus_connection()
+    conn._unwrap_reply = True  # backwards compatible behavior
     metadata = conn.send_and_get_reply(new_method_call(address, 'GetMetadata'))
     metadata = dict(metadata[0])
     keys = ['artist', 'title', 'album']
