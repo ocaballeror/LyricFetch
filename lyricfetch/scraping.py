@@ -23,7 +23,7 @@ async def get_url(url, parser='html'):
     response.raise_for_status()
     content = response.text
     if parser == 'html':
-        return BeautifulSoup(content, 'html.parser', from_encoding='utf-8')
+        return BeautifulSoup(content, 'html.parser')
     elif parser == 'json':
         return json.loads(content)
     elif parser == 'raw':
