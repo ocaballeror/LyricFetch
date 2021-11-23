@@ -179,7 +179,8 @@ def test_exclude_sources_section_callable():
     (songlyrics, 'sylosis', 'stained humanity'),
     (vagalume, 'epica', 'unchain utopia'),
 ])
-def test_scrape(site, artist, title):
+@pytest.mark.asyncio
+async def test_scrape(site, artist, title):
     """
     Test all the scraping methods, each of which should return a set of lyrics
     for a known-to-be-found song.
@@ -188,7 +189,7 @@ def test_scrape(site, artist, title):
         pytest.skip('This site is not available')
     song = Song(artist=artist, title=title)
     try:
-        lyrics = site(song)
+        lyrics = await site(song)
     except RemoteDisconnected:
         pytest.skip('Remote disconnected')
     assert lyrics != ''
@@ -197,7 +198,8 @@ def test_scrape(site, artist, title):
 @pytest.mark.parametrize('artist,title', [
     ('anthrax', 'i am the law'),
 ])
-def test_scrape_darklyrics(artist, title, lastfm_key):
+@pytest.mark.asyncio
+async def test_scrape_darklyrics(artist, title, lastfm_key):
     """
     Test scraping darklyrics, whose banning policy requires some special checks
     to be performed.
@@ -207,7 +209,7 @@ def test_scrape_darklyrics(artist, title, lastfm_key):
         pytest.skip('Darklyrics blocked you again')
     song = Song(artist=artist, title=title)
     try:
-        lyrics = darklyrics(song)
+        lyrics = await darklyrics(song)
     except RemoteDisconnected:
         pytest.skip('Remote disconnected')
     assert lyrics != ''

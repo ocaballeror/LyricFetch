@@ -54,6 +54,7 @@ setup(
             'tox',
             'pytest',
             'pytest-cov',
+            'pytest-asyncio',
             'python-magic-bin ; platform_system=="Windows"'
         ],
     },
