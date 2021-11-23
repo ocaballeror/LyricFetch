@@ -66,34 +66,6 @@ def normalize(string, chars_to_remove=None, replacement=''):
     return ret
 
 
-async def metrolyrics(song):
-    """
-    Returns the lyrics found in metrolyrics for the specified mp3 file or an
-    empty string if not found.
-    """
-    translate = {URLESCAPE: '', ' ': '-'}
-    title = song.title.lower()
-    title = normalize(title, translate)
-    title = re.sub(r'\-{2,}', '-', title)
-    artist = song.artist.lower()
-    artist = normalize(artist, translate)
-    artist = re.sub(r'\-{2,}', '-', artist)
-
-    url = 'http://www.metrolyrics.com/{}-lyrics-{}.html'.format(title, artist)
-    soup = await get_url(url)
-    body = soup.find(id='lyrics-body-text')
-    if body is None:
-        return None
-
-    text = ''
-    verses = body.find_all('p')
-    for verse in verses:
-        text += verse.get_text().strip()
-        text += '\n\n'
-
-    return text.strip()
-
-
 async def darklyrics(song):
     """
     Returns the lyrics found in darklyrics for the specified mp3 file or an
@@ -482,7 +454,6 @@ async def letras(song):
 
 source_ids = {
     azlyrics: ('AZL', 'AZLyrics.com'),
-    metrolyrics: ('MET', 'Metrolyrics.com'),
     lyricswikia: ('WIK', 'Lyrics.wikia.com'),
     darklyrics: ('DAR', 'Darklyrics.com'),
     metalarchives: ('ARC', 'Metal-archives.com'),
