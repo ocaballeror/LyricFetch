@@ -18,7 +18,11 @@ async def get_url(url, parser='html'):
     contents.
     """
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, follow_redirects=True)
+        response = await client.get(
+            url,
+            follow_redirects=True,
+            headers={'User-Agent': 'foobar'}
+        )
 
     response.raise_for_status()
     content = response.text
